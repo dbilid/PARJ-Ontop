@@ -1,7 +1,4 @@
-/**
- * Copyright MaDgIK Group 2010 - 2013.
- */
-package madgik.exareme.jdbc.federated;
+package madgik.exareme.jdbc.embedded;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -206,3 +203,4 @@ public class AdpResultSetMetaData implements ResultSetMetaData {
     throw new SQLException("No column with name " + name + " exists.");
   }
 }
+

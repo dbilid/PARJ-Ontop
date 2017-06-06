@@ -1,7 +1,7 @@
 /**
  * Copyright MaDgIK Group 2010 - 2013.
  */
-package madgik.exareme.jdbc.federated;
+package madgik.exareme.jdbc.embedded;
 
 import com.google.gson.Gson;
 
@@ -47,17 +47,17 @@ public class AdpResultSet implements ResultSet {
 	private AdpRecord currentRow;
 	private Gson g;
 	private int rowNo;
-	private AdpStatement statement;
+	private Statement statement;
 	private AdpResultSetMetaData rsMetadata;
 	private HashMap<String, ArrayList<ArrayList<String>>> firstRow;
 	private boolean closeStOnClose;
 	// private int concurency=ResultSet.CONCUR_READ_ONLY;
 	// private int typeScroll=ResultSet.TYPE_FORWARD_ONLY;
 
-	AdpResultSet(InputStreamReader in, AdpStatement adpStatement) throws SQLException {
+	AdpResultSet(InputStreamReader in, Statement statement2) throws SQLException {
 		this.input = new BufferedReader(in);
 		this.g = new Gson();
-		this.statement = adpStatement;
+		this.statement = statement2;
 		this.rowNo = -1;
 		this.next(); // receive metadata row
 		ArrayList<ArrayList<String>> errors = firstRow.get("errors");

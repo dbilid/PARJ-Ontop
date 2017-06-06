@@ -7,11 +7,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class IdFetcher {
 
 	private Connection con;
 	private PreparedStatement getId;
+	private PreparedStatement getUri;
 	private PreparedStatement getProperty;
 	private Map<String, Integer> cachedProperties;
 
@@ -19,6 +21,7 @@ public class IdFetcher {
 		super();
 		this.con = con;
 		this.getId = con.prepareStatement("select id from dictionary where uri=?");
+		this.getUri = con.prepareStatement("select uri from dictionary where id=?");
 		this.getProperty = con.prepareStatement("select id from properties where uri=?");
 		cachedProperties=new HashMap<String, Integer>();
 	}
@@ -34,6 +37,20 @@ public class IdFetcher {
 		} else {
 			rs.close();
 			return -1L;
+		}
+	}
+	
+	public String getUriForId(int id) throws SQLException {
+		// getId.clearBatch();
+		getUri.setInt(1, id);
+		ResultSet rs = getUri.executeQuery();
+		if (rs.next()) {
+			String res = rs.getString(1);
+			rs.close();
+			return res;
+		} else {
+			rs.close();
+			return null;
 		}
 	}
 
@@ -59,6 +76,10 @@ public class IdFetcher {
 		rs.close();
 		st.close();
 		
+	}
+
+	public Set<String> getProperties() {
+		return this.cachedProperties.keySet();
 	}
 
 }

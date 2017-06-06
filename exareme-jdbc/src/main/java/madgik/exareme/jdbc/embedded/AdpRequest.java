@@ -1,7 +1,7 @@
 /**
  * Copyright MaDgIK Group 2010 - 2013.
  */
-package madgik.exareme.jdbc.federated;
+package madgik.exareme.jdbc.embedded;
 
 /* 
  * A simple class that holds an sql query to be send through the connection, along

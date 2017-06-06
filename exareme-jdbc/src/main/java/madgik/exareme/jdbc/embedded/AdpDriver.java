@@ -1,7 +1,7 @@
 /**
  * Copyright MaDgIK Group 2010 - 2013.
  */
-package madgik.exareme.jdbc.federated;
+package madgik.exareme.jdbc.embedded;
 
 import java.sql.Connection;
 import java.sql.Driver;

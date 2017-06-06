@@ -1,7 +1,7 @@
 /**
  * Copyright MaDgIK Group 2010 - 2013.
  */
-package madgik.exareme.jdbc.federated;
+package madgik.exareme.jdbc.embedded;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -24,9 +24,11 @@ import java.sql.Statement;
 import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.logging.Level;
@@ -38,71 +40,35 @@ import java.util.logging.Logger;
  */
 public class AdpConnection implements Connection {
 
-    private URL url;
     private AdpDatabaseMetaData metadata;
-    private FederatedConnections federatedCons;
-    private String dbPath;
+    private Connection sqlite;
+    protected Set<String> tables=new HashSet<String>();
+   
 
 
     public AdpConnection(String urlString, Properties info) throws SQLException {
-        this.dbPath = "";
-        this.federatedCons = new FederatedConnections();
+    	urlString=urlString.replace("jdbc:fedadp:", "");
         this.metadata = new AdpDatabaseMetaData(this);
-        try {
-            URL urlInitial = new URL(urlString.substring(12));
-
-            if (!urlString.contains("-fedDB-")) {
-                //no federated endpoints defined
-                this.url = urlInitial;
-                //change dir to /query/
-                this.dbPath = url.getPath();
-                url = new URL(url.getProtocol() + "://" + url.getHost() + ":" + url.getPort() + "/decomposer/");
-                // this.url=""
-            } else {
-                //we have feferated DBs
-                String[] splitted = urlString.split("-fedDB-");
-                this.url = new URL(splitted[0].substring(12));
-                //change dir to /query/
-                this.dbPath = url.getPath();
-                url = new URL(url.getProtocol() + "://" + url.getHost() + ":" + url.getPort() + "/decomposer/");
-                for (int i = 1; i < splitted.length; i++) {
-                    String[] endpointData = splitted[i].split("-next-");
-                    try {
-                        Class.forName(endpointData[2]);
-                    } catch (ClassNotFoundException ex) {
-                        Logger.getLogger(AdpConnection.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                    Connection conn = DriverManager.getConnection(endpointData[1], endpointData[3], endpointData[4]);
-                    federatedCons.putSchema(new Schema(endpointData[0].replaceAll("-", ""), endpointData[5]), conn);
-                    Statement st = this.createStatement();
-                    st.executeQuery("addFederatedEndpoint(" + endpointData[0].replaceAll("-", "") + "," + endpointData[1] + "," + endpointData[2] + "," + endpointData[3] + "," + endpointData[4] + "," + endpointData[5] + ")");
-                    st.close();
-
-                }
-
-            }
-
-        } catch (MalformedURLException ex) {
-            //throw new SQLException(ex.getMessage());
-            Logger.getLogger(AdpConnection.class.getName()).log(Level.SEVERE, null, ex);
+        sqlite=DriverManager.getConnection("jdbc:sqlite:"+urlString+"rdf.db");
+        Statement st=sqlite.createStatement();
+        ResultSet rs=st.executeQuery("select id from properties");
+        while(rs.next()){
+        	tables.add("prop"+rs.getInt(1));
         }
-        
-                            
+        rs.close();
+        st.close();
+                     
 
-    }
-
-    protected URL getURL() {
-        return url;
     }
 
     @Override
-    public AdpStatement createStatement() throws SQLException {
-        return new AdpStatement(this);
+    public Statement createStatement() throws SQLException {
+        return sqlite.createStatement();
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql) throws SQLException {
-        return new AdpPreparedStatement(this, sql);
+        return sqlite.prepareStatement(sql);
     }
 
     @Override
@@ -142,18 +108,12 @@ public class AdpConnection implements Connection {
     @Override
     public void close() throws SQLException {
         this.metadata = null;
-        this.url = null;
-        for(Connection c:federatedCons.getDistinctDBConnections()){
-            if(c!=null){
-                c.close();
-            }
-        }
-        //delete registrydb?
+        sqlite.close();
     }
 
     @Override
     public boolean isClosed() throws SQLException {
-        return this.url == null;
+        return this.sqlite.isClosed();
     }
 
     @Override
@@ -204,19 +164,7 @@ public class AdpConnection implements Connection {
     @Override
     public Statement createStatement(int resultSetType, int resultSetConcurrency)
             throws SQLException {
-        // return new AdpStatement(this);
-        if (resultSetType != ResultSet.TYPE_FORWARD_ONLY) {
-            Logger.getLogger(AdpConnection.class.getName()).log(Level.WARNING, "Trying to set Statement resultSetType to value different from ResultSet.TYPE_FORWARD_ONLY. Not supported.");
-            /*
-             throw new UnsupportedOperationException("Resultset type: " + resultSetType
-             + " not supported yet.");
-             */        }
-        if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
-            throw new UnsupportedOperationException("Concurrency type: "
-                    + resultSetConcurrency
-                    + " not supported yet.");
-        }
-        return new AdpStatement(this);
+        return sqlite.createStatement(resultSetType, resultSetConcurrency);
     }
 
     @Override
@@ -407,12 +355,14 @@ public class AdpConnection implements Connection {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-    public FederatedConnections getFederatedConnections() {
-        return this.federatedCons;
-    }
+	public Connection getSqlite() {
+		return sqlite;
+	}
 
-    public String getDbPath() {
-        return dbPath;
-    }
+	public void setSqlite(Connection sqlite) {
+		this.sqlite = sqlite;
+	}
     
+    
+
 }

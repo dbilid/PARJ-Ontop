@@ -35,6 +35,7 @@ public class QuestConstants {
 	public static final String SEMANTIC_INDEX = "semantic";
 	public static final String UNIVERSAL = "universal";
 	public static final String DIRECT = "direct";
+	public static final String PANTELIS = "pantelis";
 	
 	// Storage location
 	public static final String JDBC = "jdbc";

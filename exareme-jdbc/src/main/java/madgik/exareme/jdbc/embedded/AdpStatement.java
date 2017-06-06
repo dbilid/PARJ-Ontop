@@ -1,7 +1,4 @@
-/**
- * Copyright MaDgIK Group 2010 - 2013.
- */
-package madgik.exareme.jdbc.federated;
+package madgik.exareme.jdbc.embedded;
 
 import com.google.gson.Gson;
 
@@ -64,99 +61,13 @@ public class AdpStatement implements Statement {
     @Override
     public AdpResultSet executeQuery(String sql) throws SQLException {
 
-        if (sql.startsWith("addFederatedEndpoint")
-                || sql.startsWith("removeFederatedEndpoint")) {
-            AdpRequest q = new AdpRequest(sql, "query", con.getDbPath(), String.valueOf(timeout));
-            getResponse(q);
-            manageFederatedEndpoints(sql);
-            this.resultSet = new AdpResultSet(result, this);
-            return resultSet;
-            // return new AdpResultSet(manageFederatedEndpoints(sql), this);
-        } else if (sql.startsWith("select * from")
-                && sql.endsWith("where 0 = 1")) {
-			// schema spy query to collect metadata!!!!
-            // hack to execute directly to endpoint without connecting to ADP
-            // server
-
-            String table = sql.split(" ")[3];
-            if (table.startsWith("adp")) {
-                table = table.substring(4);
-            }
-            table = table.replaceAll("\"", "");
-            for (Schema endpoint : this.con.getFederatedConnections()
-                    .getSchemas()) {
-                if (table.toUpperCase().startsWith(endpoint.getId().toUpperCase() + "_")) {
-                    Connection remote = this.con.getFederatedConnections()
-                            .getConnection(endpoint);
-                    String remoteTableName = table.substring(endpoint.getId()
-                            .length() + 1);
-                    ResultSet first;
-                    StringBuilder sb;
-                    try (Statement s = remote.createStatement()) {
-                        first = s.executeQuery("select * from "
-                                + endpoint.getSchema() + "." + remoteTableName
-                                + " where 0=1");
-                        ArrayList<ArrayList<String>> schema = new ArrayList<ArrayList<String>>();
-                        for (int i = 1; i < first.getMetaData().getColumnCount() + 1; i++) {
-                            ArrayList<String> nextCouple = new ArrayList<String>();
-                            nextCouple.add(first.getMetaData().getColumnName(i));
-                            nextCouple
-                                    .add(first.getMetaData().getColumnTypeName(i));
-                            schema.add(nextCouple);
-                        }
-                        HashMap<String, ArrayList<ArrayList<String>>> h = new HashMap<String, ArrayList<ArrayList<String>>>();
-                        h.put("schema", schema);
-                        h.put("errors", new ArrayList<ArrayList<String>>());
-                        Gson g = new Gson();
-                        sb = new StringBuilder();
-                        sb.append(g.toJson(h, h.getClass()));
-                        while (first.next()) {
-                            sb.append("\n");
-                            ArrayList<Object> res = new ArrayList<Object>();
-                            for (int i = 1; i < first.getMetaData()
-                                    .getColumnCount() + 1; i++) {
-
-                                res.add(first.getObject(i));
-                            }
-
-                            sb.append(g.toJson((ArrayList<Object>) res));
-                        }
-                    }
-                    first.close();
-                    this.resultSet = new AdpResultSet(new InputStreamReader(
-                            new StringBufferInputStream(sb.toString())),
-                            this.con.createStatement());
-                    return resultSet;
-					// return new AdpResultSet(new InputStreamReader(new
-                    // StringBufferInputStream(sb.toString())),
-                    // this.con.createStatement());
-
-                }
-            }
-        }
-        if (sql.endsWith(") LIMIT 1") || sql.endsWith(") LIMIT 10")) {
-            sql = sql.replace(") LIMIT 1", ") derivedtablealias LIMIT 1");
-        }
-        AdpRequest q = new AdpRequest(sql, "query", con.getDbPath(), String.valueOf(timeout));
-        getResponse(q);
-        this.resultSet = new AdpResultSet(result, this);
-        return resultSet;
+    	throw new UnsupportedOperationException("Not supported yet.");
 
     }
 
     @Override
     public int executeUpdate(String sql) throws SQLException {
-        AdpRequest q = new AdpRequest(sql, "update", con.getDbPath(), String.valueOf(timeout));
-        getResponse(q);
-        BufferedReader br = new BufferedReader(result);
-        String line;
-        try {
-            line = br.readLine();
-        } catch (IOException ex) {
-            throw new SQLException("Could not read result of update");
-        }
-        Gson g = new Gson();
-        return g.fromJson(line, Integer.class).intValue();
+    	throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
@@ -240,17 +151,7 @@ public class AdpStatement implements Statement {
 
     @Override
     public boolean execute(String sql) throws SQLException {
-        AdpRequest q = new AdpRequest(sql, "execute", con.getDbPath(), String.valueOf(timeout));
-        getResponse(q);
-        BufferedReader br = new BufferedReader(result);
-        String line;
-        try {
-            line = br.readLine();
-        } catch (IOException ex) {
-            throw new SQLException("Could not read result of update");
-        }
-        Gson g = new Gson();
-        return g.fromJson(line, Boolean.class).booleanValue();
+    	throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
@@ -436,53 +337,7 @@ public class AdpStatement implements Statement {
         }
     }
 
-    private InputStreamReader manageFederatedEndpoints(String sql)
-            throws SQLException {
-        FederatedConnections federatedCons = con.getFederatedConnections();
-        String sqlParams = sql.substring(sql.indexOf("(") + 1,
-                sql.lastIndexOf(")"));
-        sqlParams = sqlParams.replaceAll(" ", "");
-        String[] params = sqlParams.split(",");
-        if (sql.startsWith("addFederatedEndpoint")) {
 
-            try {
-                Class.forName(params[2]);
-            } catch (ClassNotFoundException ex) {
-                Logger.getLogger(AdpStatement.class.getName()).log(
-                        Level.SEVERE, null, ex);
-            }
-            Connection conn = null;
-            conn = DriverManager.getConnection(params[1], params[3], params[4]);
-            federatedCons.putSchema(new Schema(params[0], params[5]), conn);
-            return createOKResultStreamReader();
-        } else {
-            federatedCons.removeSchema(new Schema(params[0], params[5]));
-            return createOKResultStreamReader();
-        }
 
-    }
-
-    private InputStreamReader createOKResultStreamReader() {
-		// HashMap<String, ArrayList<ArrayList<String>>> firstRow=new
-        // HashMap<String, ArrayList<ArrayList<String>>>();
-        ArrayList<ArrayList<String>> schema = new ArrayList<ArrayList<String>>();
-		// ArrayList<String> typenames=new ArrayList<String>();
-        // typenames.add("VARCHAR");
-        // schema.add(typenames);
-        ArrayList<String> names = new ArrayList<String>();
-        names.add("RESULT");
-        names.add("VARCHAR");
-        schema.add(names);
-        HashMap<String, ArrayList<ArrayList<String>>> h = new HashMap<String, ArrayList<ArrayList<String>>>();
-        h.put("schema", schema);
-        h.put("errors", new ArrayList<ArrayList<String>>());
-        Gson g = new Gson();
-        StringBuilder sb = new StringBuilder();
-        sb.append(g.toJson(h, h.getClass()));
-        sb.append("\n");
-        ArrayList<Object> res = new ArrayList<Object>();
-        res.add("OK");
-        sb.append(g.toJson((ArrayList<Object>) res));
-        return new InputStreamReader(new StringBufferInputStream(sb.toString()));
-    }
+   
 }
