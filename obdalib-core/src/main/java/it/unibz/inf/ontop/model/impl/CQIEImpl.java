@@ -178,9 +178,14 @@ public class CQIEImpl implements CQIE, ListListener {
 		Function copyHead = (Function)head.clone();
 		List<Function> copyBody = new ArrayList<Function>(body.size() + 10);
 
+		//remove duplicate atoms
+		//Set<Function> existingAtoms=new HashSet<Function>();
+		
 		for (Function atom : body) {
 			if (atom != null) {
-				copyBody.add((Function) atom.clone());
+			//	if(existingAtoms.add(atom)){
+					copyBody.add((Function) atom.clone());
+			//	}
 			}
 		}
 		

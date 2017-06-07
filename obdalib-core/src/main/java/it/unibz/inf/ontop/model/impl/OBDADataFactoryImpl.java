@@ -507,6 +507,16 @@ public class OBDADataFactoryImpl implements OBDADataFactory {
 		return newTerm;
 	}
 
+	@Override
+	public Function getDisjunction(Function... f) {
+		return getFunction(OBDAVocabulary.DISJUNCTION, f);
+	}
+	
+	@Override
+	public Function getConjunction(Function... f) {
+		return getFunction(OBDAVocabulary.CONJUNCTION, f);
+	}
+
 
 
 	

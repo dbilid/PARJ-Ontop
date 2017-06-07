@@ -64,5 +64,7 @@ public class OBDAVocabulary {
 
 	public static final Predicate SPARQL_JOIN = new AlgebraOperatorPredicateImpl("Join");
 	public static final Predicate SPARQL_LEFTJOIN = new AlgebraOperatorPredicateImpl("LeftJoin");
+	public static final Predicate DISJUNCTION = new AlgebraOperatorPredicateImpl("Disjunction");
+	public static final Predicate CONJUNCTION = new AlgebraOperatorPredicateImpl("Conjunction");
 
 }

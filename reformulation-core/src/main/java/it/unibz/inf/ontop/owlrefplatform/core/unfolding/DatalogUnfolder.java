@@ -179,18 +179,38 @@ public class DatalogUnfolder {
 		List<CQIE> workingSet = new LinkedList<>();
 		for (CQIE query : inputquery.getRules()) 
 			workingSet.add(query.clone());
+		
+		//remove duplicate answers
+		for (CQIE q : workingSet){
+			Set<Function> existingAtoms=new HashSet<Function>();
+			System.out.println("initial size:::"+q.getBody().size());
+			for(int i=0;i<q.getBody().size();i++){
+				if(!existingAtoms.add(q.getBody().get(i))){
+					q.getBody().remove(i);
+					i--;
+				}
+			}
+			System.out.println("final size:::"+q.getBody().size());
+		}
 				
 		for (CQIE query : workingSet)
 			EQNormalizer.enforceEqualities(query);
-
-		computePartialEvaluation(workingSet);	
 		
-		// We need to enforce equality again, because at this point it is 
-		//  possible that there is still some EQ(...) 
-		for (CQIE query : workingSet) {
-			EQNormalizer.enforceEqualities(query);
-			UniqueConstraintOptimizer.selfJoinElimination(query, primaryKeys);
+		boolean pantelis=true;
+		if(pantelis){
+			getResultForPantelis(workingSet);
 		}
+		else{
+			computePartialEvaluation(workingSet);	
+			// We need to enforce equality again, because at this point it is 
+			//  possible that there is still some EQ(...) 
+			for (CQIE query : workingSet) {
+				EQNormalizer.enforceEqualities(query);
+				UniqueConstraintOptimizer.selfJoinElimination(query, primaryKeys);
+			}
+		}
+		
+		
 			
 		DatalogProgram result = termFactory.getDatalogProgram(inputquery.getQueryModifiers());
 		result.appendRule(workingSet);
@@ -912,6 +932,115 @@ public class DatalogUnfolder {
 	//
 	// }
 
+
+	private void getResultForPantelis(List<CQIE> workingSet) {
+		for(CQIE q:workingSet){
+			for(int f=0;f<q.getBody().size();f++){
+				Function atom=q.getBody().get(f);
+				if (atom.isDataFunction()) {
+					Predicate pred = atom.getFunctionSymbol();
+					List<CQIE> rulesDefiningTheAtom = ruleIndex.get(pred);
+					if (rulesDefiningTheAtom == null) {
+						System.out.println("what3???");
+					}
+					else{
+						if(rulesDefiningTheAtom.size()==1){
+							CQIE rule=rulesDefiningTheAtom.get(0).clone();
+							for(int i=0;i<atom.getTerms().size();i++){
+								Term t=atom.getTerm(i);
+								Term toReplace=rule.getHead().getTerm(i);
+								if(toReplace instanceof Function){
+									Function func=(Function)toReplace;
+									if(func.getFunctionSymbol().getName().equals("URI")){
+										toReplace=func.getTerm(0);
+									}
+									else{
+										System.out.println("what4???");
+									}
+								}
+								rule.getHead().setTerm(i, t);
+								for(int j=0;j<rule.getBody().size();j++){
+									Function b=rule.getBody().get(j);
+									if(b.getFunctionSymbol().getName().equals("IS_NOT_NULL")){
+										//remove not null conditions as they are guaranteed from physical design
+										rule.getBody().remove(j);
+										j--;
+										continue;
+									}
+									for(int k=0;k<b.getArity();k++){
+										Term bTerm=b.getTerm(k);
+										if(bTerm.equals(toReplace)){
+											b.setTerm(k, t);
+										}
+									}
+								}
+							}
+							q.getBody().remove(f);
+							f--;
+							for(Function toRepl:rule.getBody()){
+								q.getBody().add(f+1, toRepl);
+								f++;
+							}
+								
+						}
+						else{
+							Set<Function> disjunctions=new HashSet<Function>(rulesDefiningTheAtom.size());
+							for(CQIE nextRule:rulesDefiningTheAtom){
+							CQIE rule=nextRule.clone();
+							Set<Function> conjunctions=new HashSet<Function>(rule.getBody().size());
+							for(int i=0;i<atom.getTerms().size();i++){
+								Term t=atom.getTerm(i);
+								Term toReplace=rule.getHead().getTerm(i);
+								if(toReplace instanceof Function){
+									Function func=(Function)toReplace;
+									if(func.getFunctionSymbol().getName().equals("URI")){
+										toReplace=func.getTerm(0);
+									}
+									else{
+										System.out.println("what4???");
+									}
+								}
+								rule.getHead().setTerm(i, t);
+								for(int j=0;j<rule.getBody().size();j++){
+									Function b=rule.getBody().get(j);
+									if(b.getFunctionSymbol().getName().equals("IS_NOT_NULL")){
+										//remove not null conditions as they are guaranteed from physical design
+										rule.getBody().remove(j);
+										j--;
+										continue;
+									}
+									for(int k=0;k<b.getArity();k++){
+										Term bTerm=b.getTerm(k);
+										if(bTerm.equals(toReplace)){
+											b.setTerm(k, t);
+										}
+									}
+								}
+							}
+							
+							
+							for(Function toRepl:rule.getBody()){
+								conjunctions.add(toRepl);
+							}
+							Function conj = termFactory.getConjunction(conjunctions.toArray(new Function[conjunctions.size()]));
+							disjunctions.add(conj);
+						}
+							Function disj = termFactory.getDisjunction(disjunctions.toArray(new Function[disjunctions.size()]));
+							q.getBody().remove(f);
+							q.getBody().add(f, disj);
+					}
+				}
+				}
+				else if (atom.isAlgebraFunction()) {
+					System.out.println("what???");
+				} 	
+				else{
+					System.out.println("what2???");
+				}
+			}
+		}
+		
+	}
 
 	/***
 	 * This method assumes that the inner term (termidx) of term is a data atom,
