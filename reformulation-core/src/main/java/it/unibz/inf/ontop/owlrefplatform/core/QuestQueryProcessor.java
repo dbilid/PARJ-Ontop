@@ -314,4 +314,87 @@ public class QuestQueryProcessor {
 	public OntopBenchmark getBenchmarkObject() {
 	    return this.benchmarkObj;
 	}
+
+	public DatalogProgram getPantelisDatalog(ParsedQuery pq) {
+		try {
+			// log.debug("Input query:\n{}", strquery);
+			
+			SparqlAlgebraToDatalogTranslator translator = new SparqlAlgebraToDatalogTranslator(unfolder.getUriTemplateMatcher(), uriMap);
+			SparqlQuery translation = translator.translate(pq);
+			DatalogProgram program = translation.getProgram();
+			log.debug("Datalog program translated from the SPARQL query: \n{}", program);
+			//System.out.println("OUT " + program);
+
+			SameAsRewriter sameAs = new SameAsRewriter(unfolder.getSameAsDataPredicatesAndClasses(), unfolder.getSameAsObjectPredicates());
+			program = sameAs.getSameAsRewriting(program);
+			//System.out.println("SAMEAS" + program);
+
+			log.debug("Replacing equivalences...");
+			DatalogProgram newprogramEq = OBDADataFactoryImpl.getInstance().getDatalogProgram(program.getQueryModifiers());
+			Predicate topLevelPredicate = null;
+			for (CQIE query : program.getRules()) {
+				// TODO: fix cloning
+				CQIE rule = query.clone();
+				// TODO: get rid of EQNormalizer
+				EQNormalizer.enforceEqualities(rule);
+
+				CQIE newquery = vocabularyValidator.replaceEquivalences(rule);
+				if (newquery.getHead().getFunctionSymbol().getName().equals(OBDAVocabulary.QUEST_QUERY))
+					topLevelPredicate = newquery.getHead().getFunctionSymbol();
+				newprogramEq.appendRule(newquery);
+			}
+
+			SPARQLQueryFlattener fl = new SPARQLQueryFlattener(newprogramEq);
+			List<CQIE> p = fl.flatten(newprogramEq.getRules(topLevelPredicate).get(0));
+			DatalogProgram newprogram = OBDADataFactoryImpl.getInstance().getDatalogProgram(program.getQueryModifiers(), p);
+
+			for (CQIE q : newprogram.getRules()) 
+				DatalogNormalizer.unfoldJoinTrees(q);
+			log.debug("Normalized program: \n{}", newprogram);
+
+			if (newprogram.getRules().size() < 1)
+				throw new OBDAException("Error, the translation of the query generated 0 rules. This is not possible for any SELECT query (other queries are not supported by the translator).");
+
+			log.debug("Start the rewriting process...");
+
+			for (CQIE cq : newprogram.getRules())
+				CQCUtilities.optimizeQueryWithSigmaRules(cq.getBody(), sigma);
+			
+			long startTime = System.currentTimeMillis();
+			
+			DatalogProgram programAfterRewriting = rewriter.rewrite(newprogram);
+			
+			long endTime = System.currentTimeMillis();
+			
+			long rewritingTime = endTime - startTime;
+			
+			log.debug("Start the partial evaluation process...");
+
+			startTime = System.currentTimeMillis();
+			DatalogProgram programAfterUnfolding = unfolder.unfold(programAfterRewriting);
+			
+			log.debug("Data atoms evaluated: \n{}", programAfterUnfolding);
+
+			List<CQIE> toRemove = new LinkedList<>();
+			for (CQIE rule : programAfterUnfolding.getRules()) {
+				Predicate headPredicate = rule.getHead().getFunctionSymbol();
+				if (!headPredicate.getName().equals(OBDAVocabulary.QUEST_QUERY)) {
+					toRemove.add(rule);
+				}
+			}
+			programAfterUnfolding.removeRules(toRemove);
+			log.debug("Irrelevant rules removed: \n{}", programAfterUnfolding);
+			
+			
+			return programAfterUnfolding;
+			
+		} 
+		catch (Exception e) {
+			log.debug(e.getMessage(), e);
+			e.printStackTrace();
+			OBDAException ex = new OBDAException("Error rewriting and unfolding into SQL\n" +  e.getMessage());
+			ex.setStackTrace(e.getStackTrace());
+			throw ex;
+		}
+	}
 }

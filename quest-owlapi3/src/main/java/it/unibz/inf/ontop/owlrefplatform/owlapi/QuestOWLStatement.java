@@ -1,5 +1,7 @@
 package it.unibz.inf.ontop.owlrefplatform.owlapi;
 
+import it.unibz.inf.ontop.model.DatalogProgram;
+
 /*
  * #%L
  * ontop-quest-owlapi
@@ -355,6 +357,16 @@ public class QuestOWLStatement implements AutoCloseable {
 		try {
 			ParsedQuery pq = st.questInstance.getEngine().getParsedQuery(query); 			
 			return st.questInstance.getEngine().getSQL(pq);
+		} 
+		catch (Exception e) {
+			throw new OntopOWLException(e);
+		}
+	}
+	
+	public DatalogProgram getUnfoldingForPantelis(String query) throws OWLException {
+		try {
+			ParsedQuery pq = st.questInstance.getEngine().getParsedQuery(query); 			
+			return st.questInstance.getEngine().getPantelisDatalog(pq);
 		} 
 		catch (Exception e) {
 			throw new OntopOWLException(e);

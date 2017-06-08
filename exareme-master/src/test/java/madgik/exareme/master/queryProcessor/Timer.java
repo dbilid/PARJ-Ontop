@@ -1,4 +1,5 @@
-package it.unibz.inf.ontop.sql;
+package madgik.exareme.master.queryProcessor;
+
 import java.util.*;
 
 public class Timer {

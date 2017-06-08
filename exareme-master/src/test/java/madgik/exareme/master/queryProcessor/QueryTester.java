@@ -1,6 +1,7 @@
-package it.unibz.inf.ontop.sql;
+package madgik.exareme.master.queryProcessor;
 
 import it.unibz.inf.ontop.io.ModelIOManager;
+import it.unibz.inf.ontop.model.DatalogProgram;
 import it.unibz.inf.ontop.model.OBDADataFactory;
 import it.unibz.inf.ontop.model.OBDADataSource;
 import it.unibz.inf.ontop.model.OBDAModel;
@@ -15,6 +16,11 @@ import it.unibz.inf.ontop.owlrefplatform.owlapi.QuestOWLResultSet;
 import it.unibz.inf.ontop.owlrefplatform.owlapi.QuestOWLStatement;
 import it.unibz.inf.ontop.r2rml.R2RMLReader;
 import madgik.exareme.master.db.DBManager;
+import madgik.exareme.master.queryProcessor.decomposer.dag.Node;
+import madgik.exareme.master.queryProcessor.decomposer.dag.NodeHashValues;
+import madgik.exareme.master.queryProcessor.estimator.NodeSelectivityEstimator;
+import madgik.exareme.master.queryProcessor.sparql.DagCreator;
+import madgik.exareme.master.queryProcessor.sparql.DagCreatorDatalog;
 import madgik.exareme.master.queryProcessor.sparql.IdFetcher;
 
 import java.io.BufferedReader;
@@ -56,6 +62,7 @@ public class QueryTester {
 	private int timeout; // Timeout for each query in seconds.
 	private boolean run_sql;
 	private String outputfolder;
+	private IdFetcher fetcher;
 	
 	private StringBuffer obdaFile;
 	private String dir="/media/dimitris/T/test2/";
@@ -357,7 +364,7 @@ public class QueryTester {
 		obdaFile.append("\n");
 		
 		Connection c=m.getConnection(dir);
-		IdFetcher fetcher = new IdFetcher(c);
+		fetcher = new IdFetcher(c);
 		fetcher.loadProperties();
 		
 		Statement st=c.createStatement();
@@ -475,7 +482,8 @@ public class QueryTester {
 			if (mysql) {
 				st.setFetchSize(Integer.MIN_VALUE);
 			}
-			writeUnfoldedSQL(st, query, outputfolder + "/" + queryfile + ".sql", timer);
+			getPantelisDatalog(st, query, outputfolder + "/" + queryfile + ".sql", timer);
+			//writeUnfoldedSQL(st, query, outputfolder + "/" + queryfile + ".sql", timer);
 
 			if (this.run_sql) {
 				setQueryTimeout(st, timeout);
@@ -511,6 +519,26 @@ public class QueryTester {
 		String query = readFile(filename);
 		logOut(timer, READQUERY);
 		return query;
+	}
+	
+	private void getPantelisDatalog(QuestOWLStatement st, String query, String file, Timer timer) {
+		byte[] sql = null;
+		logIn(timer, UNFOLDING);
+		try {
+			NodeSelectivityEstimator nse = new NodeSelectivityEstimator(
+					dir + "histograms.json");
+			NodeHashValues hashes = new NodeHashValues();
+			hashes.setSelectivityEstimator(nse);
+			DatalogProgram result = st.getUnfoldingForPantelis(query);
+			DagCreatorDatalog creator = new DagCreatorDatalog(result, partitions, hashes, fetcher);
+
+			Node root = creator.getRootNode();
+			
+		} catch (Exception e) {
+			System.err.println("Error unfolding to SQL. ");
+			e.printStackTrace();
+		}
+		
 	}
 
 	private void writeUnfoldedSQL(QuestOWLStatement st, String query, String file, Timer timer) {

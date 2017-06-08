@@ -196,21 +196,7 @@ public class DatalogUnfolder {
 		for (CQIE query : workingSet)
 			EQNormalizer.enforceEqualities(query);
 		
-		boolean pantelis=true;
-		if(pantelis){
-			getResultForPantelis(workingSet);
-		}
-		else{
-			computePartialEvaluation(workingSet);	
-			// We need to enforce equality again, because at this point it is 
-			//  possible that there is still some EQ(...) 
-			for (CQIE query : workingSet) {
-				EQNormalizer.enforceEqualities(query);
-				UniqueConstraintOptimizer.selfJoinElimination(query, primaryKeys);
-			}
-		}
-		
-		
+		getResultForPantelis(workingSet);
 			
 		DatalogProgram result = termFactory.getDatalogProgram(inputquery.getQueryModifiers());
 		result.appendRule(workingSet);
