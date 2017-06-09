@@ -136,6 +136,7 @@ public class Stat implements StatExtractor {
 		ResultSet resultTables = st.executeQuery("select id from properties");
 		log.debug("Starting extracting stats");
 		while (resultTables.next()) {
+			
 			Map<String, Column> columnMap = new HashMap<String, Column>();
 			String tableName = "prop" + resultTables.getInt(1) + "_0";
 			log.debug("Analyzing table " + tableName);

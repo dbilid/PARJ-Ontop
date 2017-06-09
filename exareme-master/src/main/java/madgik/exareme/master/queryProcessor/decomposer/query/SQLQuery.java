@@ -258,6 +258,7 @@ public class SQLQuery {
 
 			}
 		}
+		output.append("\nwhere\n");
 		separator = "";
 
 		for (NonUnaryWhereCondition wc : getBinaryWhereConditions()) {

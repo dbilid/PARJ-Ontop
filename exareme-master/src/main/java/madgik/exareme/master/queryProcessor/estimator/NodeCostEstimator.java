@@ -160,7 +160,7 @@ public class NodeCostEstimator {
 		// Metadata.PAGE_IO_TIME * Metadata.INDEX_UTILIZATION;
 		double responseTime = -1.0;
 
-		if (!right.getChildren().isEmpty()) {
+		if (!right.getChildren().isEmpty() && right.getChildAt(0).getObject() instanceof Selection) {
 			Selection sel = (Selection) right.getChildAt(0).getObject();
 			boolean inv = false;
 			boolean subject = sel.getAllColumnRefs().get(0).getName().equals("s");
@@ -189,7 +189,7 @@ public class NodeCostEstimator {
 			if (nuwc.getLeftOp().getAllColumnRefs().get(0).getName().equals("o")) {
 				inv = true;
 			}
-			if (!left.getChildren().isEmpty()) {
+			if (!left.getChildren().isEmpty() && left.getChildAt(0).getObject() instanceof Selection) {
 				Selection sel = (Selection) left.getChildAt(0).getObject();
 
 				boolean subject = sel.getAllColumnRefs().get(0).getName().equals("s");

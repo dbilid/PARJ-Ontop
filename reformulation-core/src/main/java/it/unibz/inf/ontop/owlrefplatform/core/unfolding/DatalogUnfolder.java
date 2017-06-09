@@ -1012,6 +1012,12 @@ public class DatalogUnfolder {
 							disjunctions.add(conj);
 						}
 							Function disj = termFactory.getDisjunction(disjunctions.toArray(new Function[disjunctions.size()]));
+							
+							//add variables as args to disjunction
+							for(Term t:atom.getTerms()){
+									disj.getTerms().add(t);
+							}
+							
 							q.getBody().remove(f);
 							q.getBody().add(f, disj);
 					}

@@ -18,9 +18,13 @@ import it.unibz.inf.ontop.r2rml.R2RMLReader;
 import madgik.exareme.master.db.DBManager;
 import madgik.exareme.master.queryProcessor.decomposer.dag.Node;
 import madgik.exareme.master.queryProcessor.decomposer.dag.NodeHashValues;
+import madgik.exareme.master.queryProcessor.decomposer.federation.Memo;
+import madgik.exareme.master.queryProcessor.decomposer.federation.SinlgePlanDFLGenerator;
+import madgik.exareme.master.queryProcessor.decomposer.query.SQLQuery;
 import madgik.exareme.master.queryProcessor.estimator.NodeSelectivityEstimator;
 import madgik.exareme.master.queryProcessor.sparql.DagCreator;
 import madgik.exareme.master.queryProcessor.sparql.DagCreatorDatalog;
+import madgik.exareme.master.queryProcessor.sparql.DagExpander;
 import madgik.exareme.master.queryProcessor.sparql.IdFetcher;
 
 import java.io.BufferedReader;
@@ -533,6 +537,21 @@ public class QueryTester {
 			DagCreatorDatalog creator = new DagCreatorDatalog(result, partitions, hashes, fetcher);
 
 			Node root = creator.getRootNode();
+			
+			DagExpander expander = new DagExpander(root, hashes);
+			expander.expand();
+			// System.out.println(root.dotPrint(new HashSet<Node>()));
+			Memo memo = new Memo();
+
+			expander.getBestPlanCentralized(root, Double.MAX_VALUE, memo);
+			SinlgePlanDFLGenerator dsql = new SinlgePlanDFLGenerator(root, memo);
+			// dsql.setN2a(n2a);
+			List<SQLQuery> qList = dsql.generate();
+			for(int i =0;i<qList.size()-1;i++){
+				System.out.println(qList.get(i).toSQL());
+			}
+			qList.get(qList.size()-1).computeTableToSplit(4);
+			System.out.println(qList.get(qList.size()-1).getSqlForPartition(2));
 			
 		} catch (Exception e) {
 			System.err.println("Error unfolding to SQL. ");

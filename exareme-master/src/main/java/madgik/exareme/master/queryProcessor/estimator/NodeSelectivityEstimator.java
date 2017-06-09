@@ -365,8 +365,9 @@ public class NodeSelectivityEstimator implements SelectivityEstimator {
 
 		RelInfo resultRel = new RelInfo(lRel);
 		RelInfo newR = new RelInfo(rRel);
-
-		Histogram resultHistogram = resultRel.getAttrIndex().get(l.toString()).getHistogram();
+		Histogram resultHistogram=null;
+		resultHistogram = resultRel.getAttrIndex().get(l.toString()).getHistogram();
+		
 		if (newR.getNumberOfTuples() < 0.5 || lRel.getNumberOfTuples() < 0.5) {
 			resultHistogram.convertToTransparentHistogram();
 		} else {
@@ -521,8 +522,23 @@ public class NodeSelectivityEstimator implements SelectivityEstimator {
 	}
 
 	public void estimateBase(Node n) {
-		NodeInfo pi = new NodeInfo();
 		String tableName = ((Table) n.getObject()).getName();
+		if(!n.getChildren().isEmpty()){
+			//union!
+			estimateUnion(n);
+			Map<String, AttrInfo> r=n.getNodeInfo().getResultRel().getAttrIndex();
+			Set<AttrInfo> values=new HashSet<AttrInfo>();
+			for(AttrInfo v:r.values()){
+				values.add(v);
+			}
+			r.clear();
+			for(AttrInfo att:values){
+				r.put(tableName+"."+att.getAttrName(), att);
+			}
+			return;
+		}
+		NodeInfo pi = new NodeInfo();
+		
 		String tableAlias = ((Table) n.getObject()).getAlias();
 		RelInfo rel = this.schema.getTableIndex().get(tableName);
 		// RelInfo rel = this.planInfo.get(n.getHashId()).getResultRel();

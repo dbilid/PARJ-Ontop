@@ -316,7 +316,7 @@ public class SinlgePlanDFLGenerator {
 			return;
 		}
 
-		if (e.getObject() instanceof Table) {
+		if (e.getObject() instanceof Table && e.getChildren().isEmpty()) {
 			Table t = (Table) k.getNode().getObject();
 			tempResult.setLastTable(t);
 
@@ -457,29 +457,43 @@ public class SinlgePlanDFLGenerator {
 			}
 
 		} else if (op.getOpCode() == Node.UNION || op.getOpCode() == Node.UNIONALL) {
-			List<SQLQuery> unions = new ArrayList<SQLQuery>();
+			//List<SQLQuery> unions = new ArrayList<SQLQuery>();
 			if (e.getParents().isEmpty()) {
 				current.setHashId(e.computeHashIDExpand());
 			}
 			for (int l = 0; l < op.getChildren().size(); l++) {
-				SQLQuery u = new SQLQuery();
+				//SQLQuery u = new SQLQuery();
+				Table t = (Table) k.getNode().getObject();
+				tempResult.setLastTable(t);
 
+				tempResult.trackBaseTableFromQuery(t.getAlias(), t.getAlias());
 				// visited.put(op, current);
-				tempResult.setCurrent(u);
-				combineOperatorsAndOutputQueriesCentralized(p.getInputPlan(l), tempResult, visited);
-				if (memo.getMemoValue(p.getInputPlan(l)).isMaterialised()) {
-					u = tempResult.get(tempResult.getLastTable().getAlias());
-
-				} else {
-					// visited.put(p.getInputPlan(l), u);
-					tempResult.add(u);
+				//tempResult.setCurrent(u);
+				if(op.getChildAt(l).getObject() instanceof Table){
+					System.out.println("select * from "+op.getChildAt(l).getObject());
 				}
-				u.setHashId(p.getInputPlan(l).getNode().computeHashIDExpand());
+				else{
+				SinlgePlanDFLGenerator dsql = new SinlgePlanDFLGenerator(op.getChildAt(l), memo);
+				// dsql.setN2a(n2a);
+				List<SQLQuery> qList = dsql.generate();
+				
+				System.out.println(qList.get(0).toDistSQL());
+				}
+				
+				//combineOperatorsAndOutputQueriesCentralized(p.getInputPlan(l), tempResult, visited);
+				//if (memo.getMemoValue(p.getInputPlan(l)).isMaterialised()) {
+				//	u = tempResult.get(tempResult.getLastTable().getAlias());
 
-				unions.add(u);
+				//} else {
+					// visited.put(p.getInputPlan(l), u);
+					//tempResult.add(u);
+				//}
+				//u.setHashId(p.getInputPlan(l).getNode().computeHashIDExpand());
+
+				//unions.add(u);
 
 			}
-			if (op.getChildren().size() > 1) {
+			/*if (op.getChildren().size() > 1) {
 				tempResult.add(current);
 				current.setUnionqueries(unions);
 				if (op.getOpCode() == Node.UNION) {
@@ -496,7 +510,7 @@ public class SinlgePlanDFLGenerator {
 				if (memo.getMemoValue(k).isMaterialised()) {
 					unions.get(0).setMaterialised(true);
 				}
-			}
+			}*/
 
 		} else if (op.getOpCode() == Node.SELECT) {
 

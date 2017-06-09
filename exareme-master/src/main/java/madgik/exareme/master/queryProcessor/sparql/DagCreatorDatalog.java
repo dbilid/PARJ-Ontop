@@ -3,8 +3,10 @@ package madgik.exareme.master.queryProcessor.sparql;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.rdf4j.query.algebra.Join;
 import org.eclipse.rdf4j.query.algebra.Projection;
@@ -229,6 +231,8 @@ public class DagCreatorDatalog {
 		for(Function atom:first.getBody()){
 			Predicate pred=atom.getFunctionSymbol();
 			if(pred == OBDAVocabulary.DISJUNCTION){
+				Map<Variable, String> projectedVars=new HashMap<Variable, String>(2);
+				String position="s";
 				Node union=new Node(Node.AND, Node.UNIONALL);
 				for(Term conj:atom.getTerms()){
 					Node top=new Node(Node.OR);
@@ -240,15 +244,35 @@ public class DagCreatorDatalog {
 							Function conjAtom=(Function) conjFunct.getTerm(0);
 							getNodeForTriplePattern(conjAtom, top);
 							union.addChild(top);
-						
+							
 					}
+					else if(conj instanceof Variable){
+						projectedVars.put((Variable)conj, position);
+						position="o";
+					}
+				    else if(conj instanceof it.unibz.inf.ontop.model.Constant){
+				    	position="o";
+				    }
 					else{
 						System.out.println("what9???? "+conj);
 					}
 				}
 				Node unionOr=new Node(Node.OR);
 				unionOr.addChild(union);
-				eqClassesToNodes.put(null, unionOr);
+				String aliasString="alias"+alias;
+				alias++;
+				Table t=new Table(aliasString, aliasString);
+				unionOr.setObject(t);
+				unionOr.getDescendantBaseTables().add(aliasString);
+				JoinClassMap result = new JoinClassMap();
+				for(Variable var:projectedVars.keySet()){
+					Column newCol = new Column(aliasString, projectedVars.get(var));
+					result.add(var.getName(), newCol);
+				}
+				
+				eqClassesToNodes.put(result, unionOr);
+				hashes.put(union.computeHashIDExpand(), union);
+				hashes.put(unionOr.computeHashIDExpand(), unionOr);
 			} else if(pred.getName().startsWith("adp.prop")){
 				Node top = new Node(Node.OR);
 				eqClassesToNodes.put(getNodeForTriplePattern(atom, top), top);

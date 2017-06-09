@@ -712,11 +712,11 @@ public class DagExpander {
 
 	private SinglePlan searchForBestPlanCentralized(Node e, double limit, Memo memo) {
 
-		if (e.getObject() instanceof Table) {
+		if (e.getObject() instanceof Table && e.getChildren().isEmpty()) {
 			// base table
 			SinglePlan r = new SinglePlan(0);
 
-			memo.put(e, r, true, true, false);
+			memo.put(e, r, false, true, false);
 
 			return r;
 		}
