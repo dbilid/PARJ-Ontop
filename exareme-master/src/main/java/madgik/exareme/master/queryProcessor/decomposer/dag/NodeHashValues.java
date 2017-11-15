@@ -27,12 +27,7 @@ public class NodeHashValues extends HashMap<HashCode, Node> {
 		this.nse = nse;
 	}
 
-	public void putWithChildren(Node n) {
-		for (Node c : n.getChildren()) {
-			this.putWithChildren(c);
-		}
-		this.put(n.getHashId(), n);
-	}
+
 
 	@Override
 	public Node put(HashCode key, Node value) {
@@ -84,6 +79,10 @@ public class NodeHashValues extends HashMap<HashCode, Node> {
 	
 	public void estimate(Node n){
 		nse.makeEstimationForNode(n);
+	}
+
+	public NodeSelectivityEstimator getNse() {
+		return nse;
 	}
 
 }

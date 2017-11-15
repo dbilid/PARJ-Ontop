@@ -18,13 +18,11 @@ import it.unibz.inf.ontop.r2rml.R2RMLReader;
 import madgik.exareme.master.db.DBManager;
 import madgik.exareme.master.queryProcessor.decomposer.dag.Node;
 import madgik.exareme.master.queryProcessor.decomposer.dag.NodeHashValues;
-import madgik.exareme.master.queryProcessor.decomposer.federation.Memo;
-import madgik.exareme.master.queryProcessor.decomposer.federation.SinlgePlanDFLGenerator;
 import madgik.exareme.master.queryProcessor.decomposer.query.SQLQuery;
 import madgik.exareme.master.queryProcessor.estimator.NodeSelectivityEstimator;
 import madgik.exareme.master.queryProcessor.sparql.DagCreator;
 import madgik.exareme.master.queryProcessor.sparql.DagCreatorDatalog;
-import madgik.exareme.master.queryProcessor.sparql.DagExpander;
+import madgik.exareme.master.queryProcessor.sparql.DagCreatorDatalogNew;
 import madgik.exareme.master.queryProcessor.sparql.IdFetcher;
 
 import java.io.BufferedReader;
@@ -69,7 +67,7 @@ public class QueryTester {
 	private IdFetcher fetcher;
 	
 	private StringBuffer obdaFile;
-	private String dir="/media/dimitris/T/test2/";
+	private String dir="/media/dimitris/T/templubm/";
 	private int partitions=4;
 
 	// For R2RML
@@ -338,7 +336,7 @@ public class QueryTester {
 		long start=System.currentTimeMillis();
 		List<Connection> cons=new ArrayList<Connection>(partitions+3);
 		for(int i=0;i<cons.size();i++){
-			cons.add(m.getConnection(database));
+			cons.add(m.getConnection(database, partitions));
 		}
 		for(int i=0;i<cons.size();i++){
 			cons.get(i).close();
@@ -367,7 +365,7 @@ public class QueryTester {
 		obdaFile.append("[MappingDeclaration] @collection [[");
 		obdaFile.append("\n");
 		
-		Connection c=m.getConnection(dir);
+		Connection c=m.getConnection(dir, partitions);
 		fetcher = new IdFetcher(c);
 		fetcher.loadProperties();
 		
@@ -379,19 +377,15 @@ public class QueryTester {
 				StringBuffer getTypes=new StringBuffer();
 				String del="";
 				String distinct="";
-				if(partitions==1){
 					distinct=" distinct ";
-				}
-				for(int p=0;p<partitions-1;p++){
+				
 					getTypes.append(del);
 					getTypes.append(" select ");
 					getTypes.append(distinct);
 					getTypes.append("o from ");
 					getTypes.append(propNo);
-					getTypes.append("_");
-					getTypes.append(p);
-					del= "\n UNION \n";
-				}
+					
+				
 				ResultSet rs2=st.executeQuery(getTypes.toString());
 				while(rs2.next()){
 					int o=rs2.getInt(1);
@@ -534,7 +528,7 @@ public class QueryTester {
 			NodeHashValues hashes = new NodeHashValues();
 			hashes.setSelectivityEstimator(nse);
 			DatalogProgram result = st.getUnfoldingForPantelis(query);
-			DagCreatorDatalog creator = new DagCreatorDatalog(result, partitions, hashes, fetcher);
+			/*DagCreatorDatalog creator = new DagCreatorDatalog(result, partitions, hashes, fetcher);
 
 			Node root = creator.getRootNode();
 			
@@ -551,7 +545,13 @@ public class QueryTester {
 				System.out.println(qList.get(i).toSQL());
 			}
 			qList.get(qList.size()-1).computeTableToSplit(4);
-			System.out.println(qList.get(qList.size()-1).getSqlForPartition(2));
+			System.out.println(qList.get(qList.size()-1).getSqlForPartition(2));*/
+			DagCreatorDatalogNew creator = new DagCreatorDatalogNew(result, partitions, hashes, fetcher);
+
+			SQLQuery result2 = creator.getRootNode();
+			result2.invertColumns();
+			result2.computeTableToSplit(partitions);
+			System.out.println(result2.getSqlForPartition(0));
 			
 		} catch (Exception e) {
 			System.err.println("Error unfolding to SQL. ");

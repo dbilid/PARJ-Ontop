@@ -151,7 +151,7 @@ public class AdpResultSet implements ResultSet {
 
 	@Override
 	public boolean getBoolean(int columnIndex) throws SQLException {
-		System.out.println("Getting boolean:::" + currentRow.get(columnIndex - 1).toString().toLowerCase() + ":::");
+		//System.out.println("Getting boolean:::" + currentRow.get(columnIndex - 1).toString().toLowerCase() + ":::");
 		if (rsMetadata.getColumnType(columnIndex) == java.sql.Types.BIT) {
 			return (Boolean) currentRow.get(columnIndex - 1);
 		} else if (currentRow.get(columnIndex - 1) == null) {

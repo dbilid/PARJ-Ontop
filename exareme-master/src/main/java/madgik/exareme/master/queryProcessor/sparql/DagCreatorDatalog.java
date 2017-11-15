@@ -3,22 +3,10 @@ package madgik.exareme.master.queryProcessor.sparql;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
-import org.eclipse.rdf4j.query.algebra.Join;
-import org.eclipse.rdf4j.query.algebra.Projection;
-import org.eclipse.rdf4j.query.algebra.ProjectionElem;
-import org.eclipse.rdf4j.query.algebra.StatementPattern;
-import org.eclipse.rdf4j.query.algebra.TupleExpr;
-import org.eclipse.rdf4j.query.algebra.Var;
-import org.eclipse.rdf4j.query.parser.ParsedQuery;
-
 import it.unibz.inf.ontop.model.CQIE;
 import it.unibz.inf.ontop.model.DatalogProgram;
-import it.unibz.inf.ontop.model.ExpressionOperation;
 import it.unibz.inf.ontop.model.Function;
 import it.unibz.inf.ontop.model.Predicate;
 import it.unibz.inf.ontop.model.Term;
@@ -49,6 +37,7 @@ public class DagCreatorDatalog {
 
 	public Node getRootNode() throws SQLException {
 		CQIE first=pq.getRules().get(0);
+		System.out.println(first);
 		Node projection = new Node(Node.AND, Node.PROJECT);
 		alias = 1;
 			Map<JoinClassMap, Node> eqClassesToNodes = new HashMap<JoinClassMap, Node>();
@@ -243,6 +232,9 @@ public class DagCreatorDatalog {
 							}
 							Function conjAtom=(Function) conjFunct.getTerm(0);
 							getNodeForTriplePattern(conjAtom, top);
+							String subOrObj=projectedVars.get(conjAtom.getTerm(0));
+							top.setSubjectIsFirst(subOrObj!=null && subOrObj.equals("s"));
+							
 							union.addChild(top);
 							
 					}

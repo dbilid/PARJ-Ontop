@@ -18,21 +18,25 @@ public class SQLiteLocalExecutor implements Runnable {
 	private Connection con;
 	private SQLQuery sql;
 	private int partition;
-	private boolean temp;
+	private boolean useResultAggregator;
 	private Set<Integer> finishedQueries;
 	private ResultBuffer globalBuffer;
+	private boolean print;
+	private List<String> extraCreates;
 	private static final Logger log = Logger.getLogger(SQLiteLocalExecutor.class);
 
 	public void setGlobalBuffer(ResultBuffer globalBuffer) {
 		this.globalBuffer = globalBuffer;
 	}
 
-	public SQLiteLocalExecutor(SQLQuery result, Connection c, boolean t, Set<Integer> f, int pt) {
+	public SQLiteLocalExecutor(SQLQuery result, Connection c, boolean t, Set<Integer> f, int pt, boolean print, List<String> exatraCreates) {
 		this.sql = result;
 		this.con = c;
-		this.temp = t;
+		this.useResultAggregator = t;
 		this.finishedQueries = f;
 		this.partition = pt;
+		this.print=print;
+		this.extraCreates=exatraCreates;
 		// System.out.println(sql);
 	}
 
@@ -52,15 +56,20 @@ public class SQLiteLocalExecutor implements Runnable {
 	private void execute() {
 		Statement st;
 		try {
-			System.out.println("starting thread");
+			//System.out.println("starting thread");
+			
 			// st=con.createStatement();
-			if (temp) {
+			st = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+			st.setFetchSize(1000);
+			for(String extra:this.extraCreates){
+				st.execute(extra);
+			}
+			long lll = System.currentTimeMillis();
+			String sqlString=sql.getSqlForPartition(partition);
+			if (useResultAggregator) {
 
 				//con.setAutoCommit(false);
-				st = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-				st.setFetchSize(1000);
-				long lll = System.currentTimeMillis();
-				String sqlString=sql.getSqlForPartition(partition);
+				
 				if(sqlString==null){
 					synchronized (globalBuffer) {
 						globalBuffer.addFinished();
@@ -68,8 +77,10 @@ public class SQLiteLocalExecutor implements Runnable {
 					}
 					return;
 				}
-				System.out.println(sqlString);
-				ResultSet rs = st.executeQuery(sql.getSqlForPartition(partition));
+				if(partition==0){
+					System.out.println(sqlString);
+				}
+				ResultSet rs = st.executeQuery(sqlString);
 				int columns = rs.getMetaData().getColumnCount();
 				List<List<Object>> localBuffer = new ArrayList<List<Object>>(9000);
 				int counter = 0;
@@ -106,8 +117,8 @@ public class SQLiteLocalExecutor implements Runnable {
 				}
 				rs.close();
 				st.close();
-				con.close();
-				System.out.println("thread executed in:" + (System.currentTimeMillis() - lll) + " ms");
+				//con.close();
+				//System.out.println("thread executed in:" + (System.currentTimeMillis() - lll) + " ms");
 				synchronized (globalBuffer) {
 					while (globalBuffer.size() > 9000) {
 						try {
@@ -123,13 +134,42 @@ public class SQLiteLocalExecutor implements Runnable {
 				localBuffer.clear();
 
 			} else {
-				// System.out.println(s.toSQL());
-				PreparedStatement ps = con.prepareStatement(sql.getSqlForPartition(partition));
-				ps.execute();
+				if(sqlString==null){
+					return;
+				}
+				if(partition==0){
+					System.out.println(sqlString);
+				}
+				ResultSet rs = st.executeQuery(sqlString);
+				int columns = rs.getMetaData().getColumnCount();
+				int counter=0;
+				while (rs.next()) {
+					counter++;
+					
+					if(!print){
+						continue;
+					}
+					List<Object> tuple = new ArrayList<Object>(columns);
+					for (int i = 1; i < columns + 1; i++) {
+						tuple.add(rs.getObject(i));
+					}
+					System.out.println(tuple+"\n");
+					
+				}
+				rs.close();
+				st.close();
+				//con.close();
+				//System.out.println("thread executed in:" + (System.currentTimeMillis() - lll) + " ms with "+
+				//counter+" results");
+				synchronized (globalBuffer) {
+					globalBuffer.addFinished(counter);
+					globalBuffer.notifyAll();
+				}
+				
 			}
 
 			//con.close();
-			System.out.println("thread finished");
+			//System.out.println("thread finished");
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 		}

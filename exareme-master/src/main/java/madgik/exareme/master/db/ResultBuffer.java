@@ -1,21 +1,22 @@
 package madgik.exareme.master.db;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class ResultBuffer {
 
-	private List<List<Object>> buffer;
+	private LinkedList<List<Object>> buffer;
 	private int counter = 0;
 
 	public ResultBuffer() {
 		super();
-		buffer = new ArrayList<List<Object>>(10000);
+		buffer = new LinkedList<List<Object>>();
 		counter = 0;
 	}
 
 	public List<Object> getNext() {
-		return buffer.remove(0);
+		return buffer.removeFirst();
 	}
 
 	public int getFinished() {
@@ -25,6 +26,10 @@ public class ResultBuffer {
 	public void addFinished() {
 		counter++;
 		System.out.println("finished:" + counter);
+	}
+	
+	public void addFinished(int count) {
+		counter+=count;
 	}
 
 	public boolean isEmpty() {

@@ -10,13 +10,15 @@ public class FinalUnionExecutor implements Runnable {
 	private PreparedStatement st;
 	private int noOfUnions;
 	private int results;
+	private boolean print;
 
-	public FinalUnionExecutor(ResultBuffer resultBuffer, PreparedStatement s, int unions) {
+	public FinalUnionExecutor(ResultBuffer resultBuffer, PreparedStatement s, int unions, boolean print) {
 		super();
 		this.resultBuffer = resultBuffer;
 		this.st = s;
 		this.noOfUnions = unions;
 		this.results = 0;
+		this.print=print;
 	}
 
 	@Override
@@ -25,10 +27,12 @@ public class FinalUnionExecutor implements Runnable {
 		// System.out.println("abla");
 		synchronized (resultBuffer) {
 			while (true) {
-				System.out.println("yep");
+				//System.out.println("yep");
 				while (!resultBuffer.isEmpty()) {
 					List<Object> tuple = resultBuffer.getNext();
-					// System.out.println(tuple);
+					if(print){
+						System.out.println(tuple);
+						}
 					results++;
 					// for(int i=1;i<tuple.size()+1;i++){
 

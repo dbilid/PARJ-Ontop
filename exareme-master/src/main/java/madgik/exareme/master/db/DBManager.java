@@ -20,13 +20,13 @@ public class DBManager {
 		this.sources = new HashMap<String, BasicDataSource>();
 	}
 
-	public Connection getConnection(String path) throws SQLException {
+	public Connection getConnection(String path, int partitions) throws SQLException {
 		if (!path.endsWith("/")) {
 			path += "/";
 		}
 		path += "rdf.db";
 		if (!sources.containsKey(path)) {
-			sources.put(path, createDataSource(path));
+			sources.put(path, createDataSource(path, partitions+2));
 		}
 		Connection c = sources.get(path).getConnection();
 
@@ -36,29 +36,36 @@ public class DBManager {
 
 	}
 
-	private BasicDataSource createDataSource(String filepath) {
+	private BasicDataSource createDataSource(String filepath, int maxOpen) {
 		BasicDataSource ds = new BasicDataSource();
 		ds.setDriverClassName("org.sqlite.JDBC");
 		ds.setUsername("");
 		ds.setPassword("");
-		ds.setUrl("jdbc:sqlite:" + filepath);
+		ds.setUrl("jdbc:sqlite::memory:");
+		//ds.setUrl("jdbc:sqlite:" + filepath);
+		ds.setMinIdle(maxOpen);
+		ds.setMaxIdle(maxOpen+1);
+		ds.setMaxOpenPreparedStatements(maxOpen+2);
+		ds.setMaxTotal(maxOpen+1);
+		
 
-		ds.setMinIdle(5);
-		ds.setMaxIdle(35);
-		ds.setMaxOpenPreparedStatements(100);
-		ds.setMaxTotal(40);
-
-		ds.addConnectionProperty("synchronous", "false");
+		ds.addConnectionProperty("synchronous", "OFF");
 		ds.addConnectionProperty("auto_vacuum", "NONE");
 		ds.addConnectionProperty("page_size", "4096");
 		ds.addConnectionProperty("cache_size", "1048576");
 		ds.addConnectionProperty("locking_mode", "EXCLUSIVE");
+		ds.addConnectionProperty("count_changes" ,"OFF");
 		ds.addConnectionProperty("journal_mode", "OFF");
 		ds.addConnectionProperty("enable_load_extension", "true");
-
+		ds.addConnectionProperty("shared_cache", "false");
+		ds.addConnectionProperty("read_uncommited", "false");
+		ds.addConnectionProperty("temp_store", "MEMORY");
+		ds.addConnectionProperty("ignore_check_constraints", "true");
 		Set<String> init = new HashSet<String>(2);
+		if(!filepath.equals("memory/rdf.db")){
+			init.add("attach database '"+filepath+"' as m");
+		}
 		init.add("select load_extension('" + DecomposerUtils.WRAPPER_VIRTUAL_TABLE + "')");
-		init.add("select load_extension('" + DecomposerUtils.INVWRAPPER_VIRTUAL_TABLE + "')");
 		ds.setConnectionInitSqls(init);
 
 		return ds;

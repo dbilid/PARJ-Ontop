@@ -13,8 +13,8 @@ public class IdFetcher {
 
 	private Connection con;
 	private PreparedStatement getId;
-	private PreparedStatement getUri;
 	private PreparedStatement getProperty;
+	private PreparedStatement getUri;
 	private Map<String, Integer> cachedProperties;
 
 	public IdFetcher(Connection con) throws SQLException {
@@ -37,20 +37,6 @@ public class IdFetcher {
 		} else {
 			rs.close();
 			return -1L;
-		}
-	}
-	
-	public String getUriForId(int id) throws SQLException {
-		// getId.clearBatch();
-		getUri.setInt(1, id);
-		ResultSet rs = getUri.executeQuery();
-		if (rs.next()) {
-			String res = rs.getString(1);
-			rs.close();
-			return res;
-		} else {
-			rs.close();
-			return null;
 		}
 	}
 
@@ -77,9 +63,23 @@ public class IdFetcher {
 		st.close();
 		
 	}
-
+	
 	public Set<String> getProperties() {
 		return this.cachedProperties.keySet();
+	}
+	
+	public String getUriForId(int id) throws SQLException {
+		// getId.clearBatch();
+		getUri.setInt(1, id);
+		ResultSet rs = getUri.executeQuery();
+		if (rs.next()) {
+			String res = rs.getString(1);
+			rs.close();
+			return res;
+		} else {
+			rs.close();
+			return null;
+		}
 	}
 
 }

@@ -114,7 +114,7 @@ public class UnaryWhereCondition implements Operand {
 		hash = null;
 		if (onColumn instanceof Column) {
 			Column c = (Column) onColumn;
-			if (c.getName().equals(oldCol.getName()) && c.getAlias()==oldCol.getAlias()) {
+			if (c.getName()==oldCol.getName() && c.getAlias()==oldCol.getAlias()) {
 				this.onColumn = newCol;
 			}
 		} else {
@@ -140,23 +140,7 @@ public class UnaryWhereCondition implements Operand {
 		return o;
 	}
 
-	@Override
-	public HashCode getHashID() {
-		if (hash == null) {
-			List<HashCode> codes = new ArrayList<HashCode>();
-			codes.add(onColumn.getHashID());
-			codes.add(Hashing.sha1().hashInt(this.type));
-			codes.add(Hashing.sha1().hashBytes(o.toUpperCase().getBytes()));
-			if (not) {
-				codes.add(Hashing.sha1().hashBytes("true".getBytes()));
-			} else {
-				codes.add(Hashing.sha1().hashBytes("false".getBytes()));
-			}
-			hash = Hashing.combineOrdered(codes);
-		}
-		return hash;
-	}
-
+	
 	public String getValue() {
 		return o;
 	}

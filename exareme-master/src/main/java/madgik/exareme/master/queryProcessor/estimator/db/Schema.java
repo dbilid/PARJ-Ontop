@@ -8,16 +8,19 @@ package madgik.exareme.master.queryProcessor.estimator.db;
 import java.util.HashMap;
 import java.util.Map;
 
+import madgik.exareme.master.queryProcessor.analyzer.stat.JoinCardinalities;
+
 /**
  * @author jim
  */
 public class Schema {
 
 	private String schemaName;
-	private Map<String, RelInfo> tableIndex;
+	private Map<Integer, RelInfo> tableIndex;
+	private JoinCardinalities cards;
 
 	/* constructor */
-	public Schema(String schemaName, Map<String, RelInfo> relIndex) {
+	public Schema(String schemaName, Map<Integer, RelInfo> relIndex) {
 		this.schemaName = schemaName;
 		this.tableIndex = relIndex;
 	}
@@ -25,9 +28,9 @@ public class Schema {
 	/* copy constructor */
 	public Schema(Schema schema) {
 		this.schemaName = schema.getSchemaName();
-		this.tableIndex = new HashMap<String, RelInfo>();
+		this.tableIndex = new HashMap<Integer, RelInfo>();
 
-		for (Map.Entry<String, RelInfo> entry : schema.tableIndex.entrySet()) {
+		for (Map.Entry<Integer, RelInfo> entry : schema.tableIndex.entrySet()) {
 			this.tableIndex.put(entry.getKey(), new RelInfo(entry.getValue()));
 		}
 
@@ -38,7 +41,7 @@ public class Schema {
 		return schemaName;
 	}
 
-	public Map<String, RelInfo> getTableIndex() {
+	public Map<Integer, RelInfo> getTableIndex() {
 		return tableIndex;
 	}
 
@@ -49,5 +52,15 @@ public class Schema {
 	public String toString() {
 		return "Schema{" + "schemaName=" + schemaName + ", tableIndex=" + tableIndex + '}';
 	}
+
+	public JoinCardinalities getCards() {
+		return cards;
+	}
+
+	public void setCards(JoinCardinalities cards) {
+		this.cards = cards;
+	}
+	
+	
 
 }

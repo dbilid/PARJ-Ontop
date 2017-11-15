@@ -236,19 +236,19 @@ public class SQLGenerator implements SQLQueryGenerator {
 
 //			log.debug("Before pulling out equalities: \n{}", cq);
 			
-			DatalogNormalizer.pullOutEqualities(cq);
+			//DatalogNormalizer.pullOutEqualities(cq);
 			
 //			log.debug("Before pulling out Left Join Conditions: \n{}", cq);
 			
-			DatalogNormalizer.pullOutLeftJoinConditions(cq);
+			//DatalogNormalizer.pullOutLeftJoinConditions(cq);
 			
 //			log.debug("Before pulling up nested references: \n{}", cq);
 
-			DatalogNormalizer.pullUpNestedReferences(cq);
+			//DatalogNormalizer.pullUpNestedReferences(cq);
 
 //			log.debug("Before adding trivial equalities: \n{}, cq);", cq);
 
-			DatalogNormalizer.addMinimalEqualityToLeftJoin(cq);
+			//DatalogNormalizer.addMinimalEqualityToLeftJoin(cq);
 
 //			log.debug("Normalized CQ: \n{}", cq);
 

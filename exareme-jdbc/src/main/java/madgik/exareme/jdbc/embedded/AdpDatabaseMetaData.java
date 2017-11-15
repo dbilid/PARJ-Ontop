@@ -652,7 +652,7 @@ public class AdpDatabaseMetaData implements java.sql.DatabaseMetaData {
             SQLException {
     	
         
-                ResultSet first = con.getSqlite().getMetaData().getTables(catalog, schemaPattern, "prop0_0", types);
+                ResultSet first = con.getSqlite().getMetaData().getTables(catalog, schemaPattern, "prop0", types);
 
                 ArrayList<ArrayList<String>> schema = new ArrayList<ArrayList<String>>();
                 //   ArrayList<String> typenames=new ArrayList<String>();
@@ -748,7 +748,7 @@ public class AdpDatabaseMetaData implements java.sql.DatabaseMetaData {
             throws SQLException {
        
 
-                ResultSet first = con.getSqlite().getMetaData().getColumns(catalog, schemaPattern, "prop0_0", columnNamePattern);
+                ResultSet first = con.getSqlite().getMetaData().getColumns(catalog, schemaPattern, "prop0", columnNamePattern);
 
                 ArrayList<ArrayList<String>> schema = new ArrayList<ArrayList<String>>();
                 for (int i = 1; i < first.getMetaData().getColumnCount() + 1; i++) {
@@ -837,7 +837,7 @@ public class AdpDatabaseMetaData implements java.sql.DatabaseMetaData {
 	@Override
 	public ResultSet getPrimaryKeys(String catalog, String schemaPat, String table)
 			throws SQLException {
-		ResultSet first = con.getSqlite().getMetaData().getPrimaryKeys(catalog, schemaPat, "prop0_0");
+		ResultSet first = con.getSqlite().getMetaData().getPrimaryKeys(catalog, schemaPat, "prop0");
 
         ArrayList<ArrayList<String>> schema = new ArrayList<ArrayList<String>>();
         for (int i = 1; i < first.getMetaData().getColumnCount() + 1; i++) {
@@ -935,7 +935,7 @@ public class AdpDatabaseMetaData implements java.sql.DatabaseMetaData {
     @Override
     public ResultSet getImportedKeys(String catalog, String schemaPat, String table)
             throws SQLException {
-    	ResultSet first = con.getSqlite().getMetaData().getImportedKeys(catalog, schemaPat, "prop0_0");
+    	ResultSet first = con.getSqlite().getMetaData().getImportedKeys(catalog, schemaPat, "prop0");
 
         ArrayList<ArrayList<String>> schema = new ArrayList<ArrayList<String>>();
         for (int i = 1; i < first.getMetaData().getColumnCount() + 1; i++) {
@@ -984,7 +984,7 @@ public class AdpDatabaseMetaData implements java.sql.DatabaseMetaData {
     @Override
     public ResultSet getExportedKeys(String catalog, String schemaPat, String table)
             throws SQLException {
-    	ResultSet first = con.getSqlite().getMetaData().getExportedKeys(catalog, schemaPat, "prop0_0");
+    	ResultSet first = con.getSqlite().getMetaData().getExportedKeys(catalog, schemaPat, "prop0");
 
         ArrayList<ArrayList<String>> schema = new ArrayList<ArrayList<String>>();
         for (int i = 1; i < first.getMetaData().getColumnCount() + 1; i++) {
@@ -1048,7 +1048,7 @@ public class AdpDatabaseMetaData implements java.sql.DatabaseMetaData {
     public ResultSet getIndexInfo(String catalog, String schemaPat, String table,
             boolean unique, boolean approximate) throws
             SQLException {
-    	ResultSet first = con.getSqlite().getMetaData().getIndexInfo(catalog, schemaPat, "prop0_0", unique, approximate);
+    	ResultSet first = con.getSqlite().getMetaData().getIndexInfo(catalog, schemaPat, "prop0", unique, approximate);
 
         ArrayList<ArrayList<String>> schema = new ArrayList<ArrayList<String>>();
         for (int i = 1; i < first.getMetaData().getColumnCount() + 1; i++) {

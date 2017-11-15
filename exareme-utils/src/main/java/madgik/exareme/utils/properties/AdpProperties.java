@@ -6,13 +6,11 @@ package madgik.exareme.utils.properties;
 
 import madgik.exareme.utils.managementBean.ManagementUtil;
 import madgik.exareme.utils.managementBean.PropertiesManagement;
+import org.apache.log4j.Logger;
 
 import java.lang.management.ManagementFactory;
 import java.util.Map;
 import java.util.Properties;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
@@ -25,7 +23,7 @@ import org.slf4j.LoggerFactory;
  * @since 1.0
  */
 public class AdpProperties {
-    private static final Logger log = LoggerFactory.getLogger(AdpProperties.class);
+    private static final Logger log = Logger.getLogger(AdpProperties.class);
     private static final GenericProperties dbProperties;
     private static final GenericProperties artProperties;
     private static final GenericProperties armProperties;

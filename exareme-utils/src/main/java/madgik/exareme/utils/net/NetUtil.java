@@ -4,15 +4,13 @@
 package madgik.exareme.utils.net;
 
 import madgik.exareme.utils.properties.AdpProperties;
+import org.apache.log4j.Logger;
 
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
 import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author Herald Kllapi <br>
@@ -22,7 +20,7 @@ import org.slf4j.LoggerFactory;
  */
 public class NetUtil {
 
-    private static Logger log = LoggerFactory.getLogger(NetUtil.class);
+    private static Logger log = Logger.getLogger(NetUtil.class);
 
     private NetUtil() {
         throw new RuntimeException("Cannot create instances of this class");
