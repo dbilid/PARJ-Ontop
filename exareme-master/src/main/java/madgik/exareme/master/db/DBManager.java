@@ -26,7 +26,7 @@ public class DBManager {
 		}
 		path += "rdf.db";
 		if (!sources.containsKey(path)) {
-			sources.put(path, createDataSource(path, partitions+2));
+			sources.put(path, createDataSource(path, partitions+4));
 		}
 		Connection c = sources.get(path).getConnection();
 

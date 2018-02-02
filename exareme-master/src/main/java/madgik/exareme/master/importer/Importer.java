@@ -55,6 +55,7 @@ import madgik.exareme.master.queryProcessor.estimator.NodeSelectivityEstimator;
 import madgik.exareme.master.queryProcessor.estimator.db.Schema;
 import madgik.exareme.master.queryProcessor.sparql.DagCreator;
 import madgik.exareme.master.queryProcessor.sparql.IdFetcher;
+import madgik.exareme.master.queryProcessor.sparql.UnionWrapperInfo;
 
 public class Importer {
 
@@ -196,6 +197,7 @@ public class Importer {
 					result.invertColumns();
 					result.computeTableToSplit(partitions);
 					List<String> exatraCreates = result.computeExtraCreates(partitions);
+					List<UnionWrapperInfo> unions=result.getUnions();
 /*
 					// add dictionary lookups
 					int out = 1;
@@ -247,7 +249,7 @@ public class Importer {
 							// createVirtualTables(cons[i], partitions);
 							SQLiteLocalExecutor ex = new SQLiteLocalExecutor(result, cons[i],
 									DecomposerUtils.USE_RESULT_AGGREGATOR, finishedQueries, i,
-									DecomposerUtils.PRINT_RESULTS, exatraCreates);
+									DecomposerUtils.PRINT_RESULTS, exatraCreates, unions);
 
 							ex.setGlobalBuffer(globalBuffer);
 							// executors.add(ex);

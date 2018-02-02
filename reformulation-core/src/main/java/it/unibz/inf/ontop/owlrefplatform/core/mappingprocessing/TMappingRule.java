@@ -15,9 +15,11 @@ import it.unibz.inf.ontop.owlrefplatform.core.basicoperations.Substitution;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /***
  * Splits a given {@link mapping} into builtin predicates ({@link conditions})
@@ -177,6 +179,41 @@ public class TMappingRule {
 		CQIE cq = fac.getCQIE(head, combinedBody);
 		EQNormalizer.enforceEqualities(cq);
 		return cq;
+	}
+	
+	
+	public Set<CQIE> asPantelisCQIE() {
+		//create a set of CQIE for ORs
+		Set<CQIE> result=new HashSet<CQIE>();
+		
+		if (!filterAtoms.isEmpty()) {
+			Iterator<List<Function>> iterOR = filterAtoms.iterator();
+			while (iterOR.hasNext()) {
+				List<Function> combinedBody;
+				combinedBody = new ArrayList<>(databaseAtoms.size() + 1); 
+				for(Function da:databaseAtoms){
+					combinedBody.add((Function)da.clone());
+				}
+				List<Function> list = iterOR.next();
+				if(list.size()!=1){
+					System.out.println("what?? 722");
+				}
+				combinedBody.add(list.get(0));
+				CQIE cq = fac.getCQIE(head, combinedBody);
+				EQNormalizer.enforceEqualities(cq);
+				result.add(cq);
+			}
+			
+		}
+		else{
+			List<Function> combinedBody;
+			combinedBody = databaseAtoms;
+			CQIE cq = fac.getCQIE(head, combinedBody);
+			EQNormalizer.enforceEqualities(cq);
+			result.add(cq);
+		}
+
+		return result;
 	}
 	
 	/***

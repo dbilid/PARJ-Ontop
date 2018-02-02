@@ -928,6 +928,7 @@ public class DatalogUnfolder {
 					List<CQIE> rulesDefiningTheAtom = ruleIndex.get(pred);
 					if (rulesDefiningTheAtom == null) {
 						System.out.println("what3???");
+						System.out.println("Property "+pred+ " not found!");
 					}
 					else{
 						if(rulesDefiningTheAtom.size()==1){

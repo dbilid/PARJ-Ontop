@@ -594,8 +594,8 @@ public class TMappingProcessor {
 				freq.add(entry.getKey());
 			}
 			for (TMappingRule mapping : entry.getValue()) {
-				CQIE cq = mapping.asCQIE();
-				tmappingsProgram.add(cq);
+				Set<CQIE> cq = mapping.asPantelisCQIE();
+				tmappingsProgram.addAll(cq);
 			}
 		}
 		

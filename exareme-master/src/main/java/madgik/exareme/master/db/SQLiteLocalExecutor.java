@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import java.sql.PreparedStatement;
 
 import madgik.exareme.master.queryProcessor.decomposer.query.SQLQuery;
+import madgik.exareme.master.queryProcessor.sparql.UnionWrapperInfo;
 
 public class SQLiteLocalExecutor implements Runnable {
 	private Connection con;
@@ -23,13 +24,14 @@ public class SQLiteLocalExecutor implements Runnable {
 	private ResultBuffer globalBuffer;
 	private boolean print;
 	private List<String> extraCreates;
+	private List<UnionWrapperInfo> unionCreates;
 	private static final Logger log = Logger.getLogger(SQLiteLocalExecutor.class);
 
 	public void setGlobalBuffer(ResultBuffer globalBuffer) {
 		this.globalBuffer = globalBuffer;
 	}
 
-	public SQLiteLocalExecutor(SQLQuery result, Connection c, boolean t, Set<Integer> f, int pt, boolean print, List<String> exatraCreates) {
+	public SQLiteLocalExecutor(SQLQuery result, Connection c, boolean t, Set<Integer> f, int pt, boolean print, List<String> exatraCreates, List<UnionWrapperInfo> unions) {
 		this.sql = result;
 		this.con = c;
 		this.useResultAggregator = t;
@@ -37,6 +39,7 @@ public class SQLiteLocalExecutor implements Runnable {
 		this.partition = pt;
 		this.print=print;
 		this.extraCreates=exatraCreates;
+		this.unionCreates=unions;
 		// System.out.println(sql);
 	}
 
@@ -64,6 +67,11 @@ public class SQLiteLocalExecutor implements Runnable {
 			for(String extra:this.extraCreates){
 				st.execute(extra);
 			}
+			for(UnionWrapperInfo uwi:unionCreates){
+				st.execute("drop table if exists memorywrapperprop"+uwi.getAlias());
+				System.out.println(uwi.getSQL());
+				st.execute(uwi.getSQL());
+			}
 			long lll = System.currentTimeMillis();
 			String sqlString=sql.getSqlForPartition(partition);
 			if (useResultAggregator) {
@@ -78,6 +86,7 @@ public class SQLiteLocalExecutor implements Runnable {
 					return;
 				}
 				if(partition==0){
+					System.out.println(this.extraCreates);
 					System.out.println(sqlString);
 				}
 				ResultSet rs = st.executeQuery(sqlString);
@@ -138,6 +147,7 @@ public class SQLiteLocalExecutor implements Runnable {
 					return;
 				}
 				if(partition==0){
+					System.out.println(this.extraCreates);
 					System.out.println(sqlString);
 				}
 				ResultSet rs = st.executeQuery(sqlString);

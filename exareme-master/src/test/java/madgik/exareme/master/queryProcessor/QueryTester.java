@@ -16,14 +16,18 @@ import it.unibz.inf.ontop.owlrefplatform.owlapi.QuestOWLResultSet;
 import it.unibz.inf.ontop.owlrefplatform.owlapi.QuestOWLStatement;
 import it.unibz.inf.ontop.r2rml.R2RMLReader;
 import madgik.exareme.master.db.DBManager;
+import madgik.exareme.master.db.FinalUnionExecutor;
+import madgik.exareme.master.db.ResultBuffer;
+import madgik.exareme.master.db.SQLiteLocalExecutor;
+import madgik.exareme.master.queryProcessor.decomposer.DecomposerUtils;
 import madgik.exareme.master.queryProcessor.decomposer.dag.Node;
 import madgik.exareme.master.queryProcessor.decomposer.dag.NodeHashValues;
 import madgik.exareme.master.queryProcessor.decomposer.query.SQLQuery;
 import madgik.exareme.master.queryProcessor.estimator.NodeSelectivityEstimator;
 import madgik.exareme.master.queryProcessor.sparql.DagCreator;
-import madgik.exareme.master.queryProcessor.sparql.DagCreatorDatalog;
 import madgik.exareme.master.queryProcessor.sparql.DagCreatorDatalogNew;
 import madgik.exareme.master.queryProcessor.sparql.IdFetcher;
+import madgik.exareme.master.queryProcessor.sparql.UnionWrapperInfo;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -37,9 +41,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.OWLException;
@@ -48,6 +58,7 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.reasoner.SimpleConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 public class QueryTester {
 
@@ -68,8 +79,8 @@ public class QueryTester {
 	
 	private StringBuffer obdaFile;
 	private String dir="/media/dimitris/T/templubm/";
-	private int partitions=4;
-
+	private int partitions=1;
+	
 	// For R2RML
 	private boolean is_r2rml;
 	private String db_creds_file;
@@ -79,7 +90,7 @@ public class QueryTester {
 	private String jdbc_url;
 	private String jdbc_driver;
 	
-
+	private Connection single;
 	// Timing identifiers and strings.
 	private final String TOTAL = "Total";
 	private final String READQUERY = "Inputting";
@@ -90,6 +101,7 @@ public class QueryTester {
 	Logger log = LoggerFactory.getLogger(this.getClass());
 	private String histograms;
 	private DBManager m;
+	private boolean run=true;
 
 	public static void main(String[] args) throws IOException {
 
@@ -111,6 +123,9 @@ public class QueryTester {
 			System.out.println(" histograms     :  paths to json histogram file\n");
 			System.exit(0);
 		}
+		
+		
+		
 
 		// args counter. NB! Keep the args in order, due to i++.
 		int i = 0;
@@ -176,7 +191,7 @@ public class QueryTester {
 		File[] listOfFiles = folder.listFiles();
 		List<String> files = new ArrayList<String>();
 		for (int i = 0; i < listOfFiles.length; i++) {
-			if (listOfFiles[i].isFile() && listOfFiles[i].getCanonicalPath().endsWith("02.q")) {
+			if (listOfFiles[i].isFile() && listOfFiles[i].getCanonicalPath().endsWith(".q")) {
 				files.add(listOfFiles[i].getCanonicalPath());
 			}
 		}
@@ -243,7 +258,30 @@ public class QueryTester {
 		
 		
 		m = new DBManager();
-		warmUpDBManager(partitions, dir, m);
+		//warmUpDBManager(partitions, dir, m);
+		
+		single = m.getConnection(dir, partitions);
+		
+			if (run) {
+			
+			
+			
+			
+			System.out.println("loading data in memory...");
+			long start = System.currentTimeMillis();
+			Statement st2= single.createStatement();
+			String load = "create virtual table tmptable using memorywrapper(";
+			load += String.valueOf(partitions);
+			load += " -1, -1)";
+			st2.execute(load);
+			st2.close();
+
+			System.out.println("data loaded" + (System.currentTimeMillis() - start) + " ms");
+			
+			createVirtualTables(single, partitions);
+			warmUpDBManager(partitions, dir, m);
+			
+		}
 		
 		createObdaFile();
 		
@@ -333,16 +371,18 @@ public class QueryTester {
 
 	private static void warmUpDBManager(int partitions, String database, DBManager m) throws SQLException {
 		System.out.println("warming up DB manager...");
-		long start=System.currentTimeMillis();
-		List<Connection> cons=new ArrayList<Connection>(partitions+3);
-		for(int i=0;i<cons.size();i++){
-			cons.add(m.getConnection(database, partitions));
+		long start = System.currentTimeMillis();
+		List<Connection> cons = new ArrayList<Connection>(partitions + 2);
+		for (int i = 0; i < partitions + 2; i++) {
+			Connection next = m.getConnection(database, partitions);
+			createVirtualTables(next, partitions);
+			cons.add(next);
 		}
-		for(int i=0;i<cons.size();i++){
+		for (int i = 0; i < cons.size(); i++) {
 			cons.get(i).close();
 		}
-		System.out.println("finished warming up DBManager in "+(System.currentTimeMillis() - start+ " ms"));
-		
+		System.out.println("finished warming up DBManager in " + (System.currentTimeMillis() - start + " ms"));
+
 	}
 
 
@@ -365,11 +405,10 @@ public class QueryTester {
 		obdaFile.append("[MappingDeclaration] @collection [[");
 		obdaFile.append("\n");
 		
-		Connection c=m.getConnection(dir, partitions);
-		fetcher = new IdFetcher(c);
+		fetcher = new IdFetcher(single);
 		fetcher.loadProperties();
 		
-		Statement st=c.createStatement();
+		Statement st=single.createStatement();
 		int mappingId=0;
 		for(String property:fetcher.getProperties()){
 			if(property.equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")){
@@ -410,8 +449,10 @@ public class QueryTester {
 					obdaFile.append("\n");
 					obdaFile.append("\n");	
 				}
+				rs2.close();
 				continue;
 			}
+			
 			obdaFile.append("mappingId\tmapp");
 			obdaFile.append(mappingId);
 			mappingId++;
@@ -427,7 +468,7 @@ public class QueryTester {
 			obdaFile.append("\n");	
 			
 		}
-		
+		st.close();
 		obdaFile.append("]]");
 		
 		
@@ -547,11 +588,84 @@ public class QueryTester {
 			qList.get(qList.size()-1).computeTableToSplit(4);
 			System.out.println(qList.get(qList.size()-1).getSqlForPartition(2));*/
 			DagCreatorDatalogNew creator = new DagCreatorDatalogNew(result, partitions, hashes, fetcher);
-
+			creator.setPartitions(partitions);
 			SQLQuery result2 = creator.getRootNode();
 			result2.invertColumns();
 			result2.computeTableToSplit(partitions);
-			System.out.println(result2.getSqlForPartition(0));
+			List<String> extraCreates = result2.computeExtraCreates(partitions);
+			List<UnionWrapperInfo> unions=result2.getUnions();
+			//System.out.println(extraCreates);
+			//System.out.println(result2.getSqlForPartition(0));
+			//boolean run=true;
+			long start = System.currentTimeMillis();
+			if (run) {
+				
+				
+				
+				ExecutorService es = Executors.newFixedThreadPool(partitions + 1);
+				
+				single.setAutoCommit(false);
+				// start=System.currentTimeMillis();
+				// ExecutorService es =
+				// Executors.newFixedThreadPool(partitions+1);
+				// ExecutorService es = Executors.newFixedThreadPool(2);
+
+				// Connection ccc=getConnection("");
+				// List<SQLiteLocalExecutor> executors = new
+				// ArrayList<SQLiteLocalExecutor>();
+				ResultBuffer globalBuffer = new ResultBuffer();
+				Set<Integer> finishedQueries = new HashSet<Integer>();
+				Connection[] cons = new Connection[partitions];
+				Collection<Future<?>> futures = new LinkedList<Future<?>>();
+				for (int i = 0; i < partitions; i++) {
+					// String sql=result.getSqlForPartition(i);
+					cons[i] = m.getConnection(dir, partitions);
+
+					// createVirtualTables(cons[i], partitions);
+					SQLiteLocalExecutor ex = new SQLiteLocalExecutor(result2, cons[i],
+							DecomposerUtils.USE_RESULT_AGGREGATOR, finishedQueries, i,
+							DecomposerUtils.PRINT_RESULTS, extraCreates, unions);
+
+					ex.setGlobalBuffer(globalBuffer);
+					// executors.add(ex);
+					futures.add(es.submit(ex));
+				}
+
+				if (DecomposerUtils.USE_RESULT_AGGREGATOR) {
+					FinalUnionExecutor ex = new FinalUnionExecutor(globalBuffer, null, partitions,
+							DecomposerUtils.PRINT_RESULTS);
+					// es.execute(ex);
+					futures.add(es.submit(ex));
+				}
+				// System.out.println(System.currentTimeMillis() -
+				// start);
+				/*
+				 * for (SQLiteLocalExecutor exec : executors) {
+				 * es.execute(exec); } es.shutdown();
+				 */
+				try {
+					for (Future<?> future : futures) {
+						future.get();
+					}
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				System.out.println(System.currentTimeMillis() - start);
+				for (int i = 0; i < partitions; i++) {
+					cons[i].close();
+				}
+				if (!DecomposerUtils.USE_RESULT_AGGREGATOR) {
+					System.out.println("total results:" + globalBuffer.getFinished());
+				}
+			} else {
+				System.out.println(extraCreates);
+				System.out.println(result2.getSqlForPartition(0));
+			}
+
+			// System.out.println(root.count(0));
+
+			System.out.println("OK");
 			
 		} catch (Exception e) {
 			System.err.println("Error unfolding to SQL. ");
@@ -734,6 +848,31 @@ public class QueryTester {
 
 	private static void myFailed() {
 		System.out.println("FAILED!");
+	}
+	
+	private static void createVirtualTables(Connection c, int partitions) throws SQLException {
+		Statement st = c.createStatement();
+		ResultSet rs = st.executeQuery("select id from properties");
+		Statement st2 = c.createStatement();
+		while (rs.next()) {
+			int propNo = rs.getInt(1);
+			// for(int i=0;i<partitions;i++){
+			 
+			// System.out.println("create virtual table"+ propNo);
+			st2.executeUpdate("create virtual table if not exists memorywrapperprop" + propNo + " using memorywrapper("
+					+ partitions + ", " + propNo + ", 0)");
+			st2.executeUpdate("create virtual table if not exists memorywrapperinvprop" + propNo
+					+ " using memorywrapper(" + partitions + ", " + propNo + ", 1)");
+
+			// st.execute("create virtual table
+			// wrapperinvprop"+propNo+"_"+i+" using
+			// wrapper(invprop"+propNo+"_"+i+", "+partitions+")");
+			// }
+		}
+		st2.close();
+		rs.close();
+		st.close();
+		// System.out.println("VTs created");
 	}
 
 }
