@@ -38,7 +38,7 @@ import madgik.exareme.master.queryProcessor.decomposer.query.Table;
 
 public class DagCreatorDatalogNew {
 
-	private DatalogProgram pq;
+	private CQIE first;
 	private NodeHashValues hashes;
 	private int alias;
 	private int unionalias;
@@ -52,9 +52,9 @@ public class DagCreatorDatalogNew {
 	// list to track filter on base tables, 0 no filter, 1 filter on first, 2
 	// filter on second
 
-	public DagCreatorDatalogNew(DatalogProgram q, int partitions, NodeHashValues hashes, IdFetcher fetcher) {
+	public DagCreatorDatalogNew(CQIE q, int partitions, NodeHashValues hashes, IdFetcher fetcher) {
 		super();
-		this.pq = q;
+		this.first = q;
 		this.hashes = hashes;
 		this.fetcher = fetcher;
 		classes = new JoinClassMap();
@@ -65,7 +65,6 @@ public class DagCreatorDatalogNew {
 	}
 
 	public SQLQuery getRootNode() throws SQLException {
-		CQIE first = pq.getRules().get(0);
 		Node projection = new Node(Node.AND, Node.PROJECT);
 		alias = 0;
 		unionalias = 1024;
@@ -162,7 +161,7 @@ public class DagCreatorDatalogNew {
 
 	}
 
-	private void getNodeForTriplePattern(Function atom, Node top, boolean addToTables, boolean isInverse) throws SQLException {
+	private void getNodeForTriplePattern(Function atom, Node top, boolean addToTables, Map<Variable, String> projectedVars) throws SQLException {
 		int pred;
 		boolean selection = false;
 		// Node baseTable=new Node(Node.OR);
@@ -191,12 +190,21 @@ public class DagCreatorDatalogNew {
 
 			// joinCondition.setLeftOp(tablesForVar.iterator().next());
 			Column newCol = new Column(alias, true);
-			if(!addToTables && isInverse){
-				newCol = new Column(alias, false);
+			if(addToTables){
+				classes.add(varString, newCol);
+			} else{ 
+				if(projectedVars.get(subject)!=null){
+					if(projectedVars.get(subject)=="o"){
+						newCol = new Column(alias, false);
+					}
+					classes.add(varString, newCol);
+				}
+			
+				
 			}
 			
 		
-			classes.add(varString, newCol);
+			
 			subVar = varString;
 			// joinCondition.setRightOp(newCol);
 			// tablesForVar.add(newCol);
@@ -235,11 +243,21 @@ public class DagCreatorDatalogNew {
 			}
 
 			Column newCol = new Column(alias, false);
-			if(!addToTables && isInverse){
-				newCol = new Column(alias, true);
+			
+			if(addToTables){
+				classes.add(varString, newCol);
+			} else{ 
+				if(projectedVars.get(object)!=null){
+					if(projectedVars.get(object)=="s"){
+						newCol = new Column(alias, true);
+					}
+					classes.add(varString, newCol);
+				}
+			
+				
 			}
-			// joinCondition.setRightOp(newCol);
-			classes.add(varString, newCol);
+			
+			
 
 		} else if (object instanceof it.unibz.inf.ontop.model.Constant) {
 			it.unibz.inf.ontop.model.Constant con = (it.unibz.inf.ontop.model.Constant) object;
@@ -356,7 +374,7 @@ public class DagCreatorDatalogNew {
 						else{
 							isInv=subOrObj==null||subOrObj.equals("o");
 						}
-						getNodeForTriplePattern(conjAtom, top, false, isInv);
+						getNodeForTriplePattern(conjAtom, top, false, projectedVars);
 
 						
 						top.setSubjectIsFirst(!isInv);
@@ -447,7 +465,7 @@ public class DagCreatorDatalogNew {
 			} else if (pred.getName().startsWith("adp.prop")) {
 				Node top = new Node(Node.OR);
 				alias++;
-				getNodeForTriplePattern(atom, top, true, false);
+				getNodeForTriplePattern(atom, top, true, null);
 			} else {
 				System.out.println("what7??? " + pred);
 			}

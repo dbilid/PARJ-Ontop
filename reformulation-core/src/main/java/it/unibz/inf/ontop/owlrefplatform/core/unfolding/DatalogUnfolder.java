@@ -920,7 +920,8 @@ public class DatalogUnfolder {
 
 
 	private void getResultForPantelis(List<CQIE> workingSet) {
-		for(CQIE q:workingSet){
+		for(int ws=0; ws<workingSet.size(); ws++){
+			CQIE q=workingSet.get(ws);
 			for(int f=0;f<q.getBody().size();f++){
 				Function atom=q.getBody().get(f);
 				if (atom.isDataFunction()) {
@@ -929,6 +930,9 @@ public class DatalogUnfolder {
 					if (rulesDefiningTheAtom == null) {
 						System.out.println("what3???");
 						System.out.println("Property "+pred+ " not found!");
+						workingSet.remove(ws);
+						ws--;
+						break;
 					}
 					else{
 						if(rulesDefiningTheAtom.size()==1){

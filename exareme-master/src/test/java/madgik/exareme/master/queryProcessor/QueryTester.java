@@ -1,6 +1,7 @@
 package madgik.exareme.master.queryProcessor;
 
 import it.unibz.inf.ontop.io.ModelIOManager;
+import it.unibz.inf.ontop.model.CQIE;
 import it.unibz.inf.ontop.model.DatalogProgram;
 import it.unibz.inf.ontop.model.OBDADataFactory;
 import it.unibz.inf.ontop.model.OBDADataSource;
@@ -78,7 +79,7 @@ public class QueryTester {
 	private IdFetcher fetcher;
 	
 	private StringBuffer obdaFile;
-	private String dir="/media/dimitris/T/templubm/";
+	private String dir;
 	private int partitions=1;
 	
 	// For R2RML
@@ -220,6 +221,7 @@ public class QueryTester {
 		this.constraints_file = constraints_file;
 		this.tmap_conf_file = tmap_conf_file;
 		this.histograms = histograms;
+		this.dir=histograms.replace("histograms.json", "");
 	}
 
 	/**
@@ -253,7 +255,7 @@ public class QueryTester {
 		}
 	}
 
-	public void initQuest(String owlfile, String obdafile) throws Exception {
+	public void initQuest(String owlfile, String obdafile2) throws Exception {
 		// Loading the OWL ontology from the file as with normal OWLReasoners
 		
 		
@@ -587,7 +589,8 @@ public class QueryTester {
 			}
 			qList.get(qList.size()-1).computeTableToSplit(4);
 			System.out.println(qList.get(qList.size()-1).getSqlForPartition(2));*/
-			DagCreatorDatalogNew creator = new DagCreatorDatalogNew(result, partitions, hashes, fetcher);
+			for(CQIE cq:result.getRules()){
+			DagCreatorDatalogNew creator = new DagCreatorDatalogNew(cq, partitions, hashes, fetcher);
 			creator.setPartitions(partitions);
 			SQLQuery result2 = creator.getRootNode();
 			result2.invertColumns();
@@ -662,7 +665,7 @@ public class QueryTester {
 				System.out.println(extraCreates);
 				System.out.println(result2.getSqlForPartition(0));
 			}
-
+			}
 			// System.out.println(root.count(0));
 
 			System.out.println("OK");
