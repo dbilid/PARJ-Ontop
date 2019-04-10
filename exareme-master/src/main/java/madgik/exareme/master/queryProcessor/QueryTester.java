@@ -77,7 +77,6 @@ public class QueryTester {
 
 	// Constructor args:
 	private String owlfile;
-	private static String vtable;
 	private String constraints_file;
 	private String tmap_conf_file;
 	private String[] query_files;
@@ -220,7 +219,6 @@ public class QueryTester {
 			boolean run_sql, int timeout, String output, String tmap_conf_file,
 			String histograms, int parts) {
 		this.owlfile = owlfile;
-		this.vtable = obdafile;
 		this.query_files = query_files;
 		this.run_sql = run_sql;
 		this.timeout = timeout;
@@ -263,14 +261,14 @@ public class QueryTester {
 		}
 	}
 
-	public void initQuest(String owlfile, String obdafile2) throws Exception {
+	public void initQuest(String owlfile) throws Exception {
 		// Loading the OWL ontology from the file as with normal OWLReasoners
 		
 		
 		m = new DBManager();
 		//warmUpDBManager(partitions, dir, m);
 		
-		single = m.getConnection(dir, partitions, vtable);
+		single = m.getConnection(dir, partitions);
 		
 			if (run) {
 			
@@ -376,7 +374,7 @@ public class QueryTester {
 		long start = System.currentTimeMillis();
 		List<Connection> cons = new ArrayList<Connection>(partitions + 2);
 		for (int i = 0; i < partitions + 2; i++) {
-			Connection next = m.getConnection(database, partitions, vtable);
+			Connection next = m.getConnection(database, partitions);
 			createVirtualTables(next, partitions);
 			cons.add(next);
 		}
@@ -480,10 +478,10 @@ public class QueryTester {
 
 	public void runQueries() {
 		try {
-			initQuest(owlfile, vtable);
+			initQuest(owlfile);
 			if (conn == null) {
 				
-					System.err.println("Could not load connection with obdafile " + vtable);
+					System.err.println("Could not load connection with obdafile ");
 
 				System.exit(0);
 			}
@@ -650,12 +648,12 @@ public class QueryTester {
 				Collection<Future<?>> futures = new LinkedList<Future<?>>();
 				for (int i = 0; i < partitions; i++) {
 					// String sql=result.getSqlForPartition(i);
-					cons[i] = m.getConnection(dir, partitions, vtable);
-
+					cons[i] = m.getConnection(dir, partitions);
+					boolean lookups=false;
 					// createVirtualTables(cons[i], partitions);
 					SQLiteLocalExecutor ex = new SQLiteLocalExecutor(result2, cons[i],
 							aggregator, finishedQueries, i,
-							print, extraCreates, unions);
+							print, lookups, extraCreates, unions);
 
 					ex.setGlobalBuffer(globalBuffer);
 					// executors.add(ex);

@@ -75,14 +75,14 @@ public class Importer {
 
 		long start = System.currentTimeMillis();
 		if (analyzeOnly) {
-			Connection mainCon = m.getConnection(database, 2, vtable);
+			Connection mainCon = m.getConnection(database, 2);
 			analyzeDB(mainCon, database);
 			mainCon.close();
 			return;
 		}
 		if (importData) {
 
-			Connection c = m.getConnection("memory", 2, vtable);
+			Connection c = m.getConnection("memory", 2);
 
 			// InputStream s = readFile(args[3]);
 			String importToSqlite = "create virtual table tmptable using importer(";
@@ -245,12 +245,12 @@ public class Importer {
 						Collection<Future<?>> futures = new LinkedList<Future<?>>();
 						for (int i = 0; i < partitions; i++) {
 							// String sql=result.getSqlForPartition(i);
-							cons[i] = m.getConnection(database, partitions, vtable);
-
+							cons[i] = m.getConnection(database, partitions);
+							boolean lookups=false;
 							// createVirtualTables(cons[i], partitions);
 							SQLiteLocalExecutor ex = new SQLiteLocalExecutor(result, cons[i],
 									DecomposerUtils.USE_RESULT_AGGREGATOR, finishedQueries, i,
-									DecomposerUtils.PRINT_RESULTS, exatraCreates, unions);
+									DecomposerUtils.PRINT_RESULTS, lookups ,exatraCreates, unions);
 
 							ex.setGlobalBuffer(globalBuffer);
 							// executors.add(ex);

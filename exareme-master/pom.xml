@@ -37,11 +37,7 @@
 		</dependency>
 
 		<!-- db drivers -->
-		<dependency>
-			<groupId>org.xerial</groupId>
-			<artifactId>sqlite-jdbc</artifactId>
-			<type>jar</type>
-		</dependency>
+		
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
@@ -120,7 +116,7 @@
 		<dependency>
 			<groupId>org.xerial</groupId>
 			<artifactId>sqlite-jdbc</artifactId>
-			<version>3.21.0.1</version>
+			<version>3.25.2</version>
 			<type>jar</type>
 		</dependency>
 

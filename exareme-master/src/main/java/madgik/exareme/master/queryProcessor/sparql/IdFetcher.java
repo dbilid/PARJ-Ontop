@@ -81,5 +81,10 @@ public class IdFetcher {
 			return null;
 		}
 	}
+	
+	public int getPropertyCount() {
+		return cachedProperties.size();
+
+	}
 
 }

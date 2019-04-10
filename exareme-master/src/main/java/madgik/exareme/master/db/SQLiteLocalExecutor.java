@@ -24,6 +24,7 @@ public class SQLiteLocalExecutor implements Runnable {
 	private ResultBuffer globalBuffer;
 	private boolean print;
 	private List<String> extraCreates;
+	private boolean tupleConstruction;
 	private List<UnionWrapperInfo> unionCreates;
 	private static final Logger log = Logger.getLogger(SQLiteLocalExecutor.class);
 
@@ -31,13 +32,14 @@ public class SQLiteLocalExecutor implements Runnable {
 		this.globalBuffer = globalBuffer;
 	}
 
-	public SQLiteLocalExecutor(SQLQuery result, Connection c, boolean t, Set<Integer> f, int pt, boolean print, List<String> exatraCreates, List<UnionWrapperInfo> unions) {
+	public SQLiteLocalExecutor(SQLQuery result, Connection c, boolean t, Set<Integer> f, int pt, boolean print, boolean tupleConstruction, List<String> exatraCreates, List<UnionWrapperInfo> unions) {
 		this.sql = result;
 		this.con = c;
 		this.useResultAggregator = t;
 		this.finishedQueries = f;
 		this.partition = pt;
 		this.print=print;
+		this.tupleConstruction=tupleConstruction;
 		this.extraCreates=exatraCreates;
 		this.unionCreates=unions;
 		// System.out.println(sql);
@@ -72,7 +74,7 @@ public class SQLiteLocalExecutor implements Runnable {
 				System.out.println(uwi.getSQL());
 				st.execute(uwi.getSQL());
 			}
-			long lll = System.currentTimeMillis();
+			//long lll = System.currentTimeMillis();
 			String sqlString=sql.getSqlForPartition(partition);
 			if (useResultAggregator) {
 
@@ -89,10 +91,11 @@ public class SQLiteLocalExecutor implements Runnable {
 					System.out.println(this.extraCreates);
 					System.out.println(sqlString);
 				}
+				
 				ResultSet rs = st.executeQuery(sqlString);
 				int columns = rs.getMetaData().getColumnCount();
 				List<List<Object>> localBuffer = new ArrayList<List<Object>>(9000);
-				int counter = 0;
+				long counter = 0;
 				//boolean print=false;
 				while (rs.next()) {
 					
@@ -150,20 +153,25 @@ public class SQLiteLocalExecutor implements Runnable {
 					System.out.println(this.extraCreates);
 					System.out.println(sqlString);
 				}
+				if (!tupleConstruction && !print)
+					sqlString = "select count(*) from (" + sqlString + ")";
 				ResultSet rs = st.executeQuery(sqlString);
 				int columns = rs.getMetaData().getColumnCount();
 				int counter=0;
 				while (rs.next()) {
-					counter++;
-					
-					if(!print){
+					if (!tupleConstruction && !print) {
+						counter += rs.getInt(1);
 						continue;
 					}
-					List<Object> tuple = new ArrayList<Object>(columns);
-					for (int i = 1; i < columns + 1; i++) {
-						tuple.add(rs.getObject(i));
+					counter++;
+					if (print) {
+						List<Object> tuple = new ArrayList<Object>(columns);
+						for (int i = 1; i < columns + 1; i++) {
+							tuple.add(rs.getObject(i));
+						}
+
+						System.out.println(tuple + "\n");
 					}
-					System.out.println(tuple+"\n");
 					
 				}
 				rs.close();

@@ -56,7 +56,10 @@ public class JoinCardinalities {
 	}
 	
 	
-	
+	public void addAll(JoinCardinalities temp) {
+		cardinalities.putAll(temp.cardinalities);
+
+	}
 	
 
 }

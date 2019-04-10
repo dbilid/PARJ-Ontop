@@ -19,7 +19,6 @@ public class DecomposerUtils {
 	private static final Logger log = Logger.getLogger(DecomposerUtils.class);
 	
 
-	public static final boolean REMOVE_OUTPUTS;
 	public static final double DISK_SCAN;
 	public static final boolean USE_ROWID;
 	public static final boolean USE_CROSS_JOIN;
@@ -27,6 +26,8 @@ public class DecomposerUtils {
 	public static final boolean PRINT_RESULTS;
 	public static final boolean USE_RESULT_AGGREGATOR;
 	public static final int SPLIT_BUCKET_THRESHOLD;
+	public static final int CARDINALITY_THREADS;
+	public static final int SKIP_TYPE_LIMIT;
 
 	static {
 		GenericProperties properties = AdpProperties.getDecomposerProperties();
@@ -39,7 +40,6 @@ public class DecomposerUtils {
 
 		
 
-		REMOVE_OUTPUTS = properties.getBoolean("remove.outputs");
 		
 		DISK_SCAN = properties.getFloat("disk.scan");
 		USE_ROWID = properties.getBoolean("use.rowid");
@@ -48,6 +48,8 @@ public class DecomposerUtils {
 		PRINT_RESULTS = properties.getBoolean("print.results");
 		USE_RESULT_AGGREGATOR = properties.getBoolean("use.result.aggregator");
 		SPLIT_BUCKET_THRESHOLD = properties.getInt("split.bucket.threshold");
+		CARDINALITY_THREADS = properties.getInt("cardinality.threads");
+		SKIP_TYPE_LIMIT = properties.getInt("skip.type.limit");
 		log.trace("Decomposer Properties Loaded.");
 	}
 

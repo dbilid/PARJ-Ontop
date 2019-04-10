@@ -76,8 +76,9 @@ public class DagCreator {
 				query.addInputTable(tables.get(tableOrder[i]));
 				eqClasses.renew();
 				boolean hasJoinOnlyInSecond=true;
+				Set<NonUnaryWhereCondition> joins = null;
 				for (int j = 0; j < inserted; j++) {
-					Set<NonUnaryWhereCondition> joins = eqClasses.getJoin(
+					joins = eqClasses.getJoin(
 							tableOrder[i]+1, tableOrder[j]+1);
 					if (joins != null) {
 						for (NonUnaryWhereCondition join : joins) {
@@ -107,6 +108,23 @@ public class DagCreator {
 						tables.get(tableOrder[i]).setInverse(true);
 					}
 				}
+				
+				if (i == 1 && filters.get(tableOrder[0]) == 0) {
+					// first table does not have filter,
+					// choose if it will be inverse depending on join with 2nd table
+					if (joins != null) {
+						for (NonUnaryWhereCondition join : joins) {
+							for (Column c : join.getAllColumnRefs()) {
+								if (c.getAlias() == tables.get(tableOrder[0]).getAlias() && !c.getColumnName()) {
+									tables.get(tableOrder[0]).setInverse(true);
+									break;
+								}
+							}
+						}
+					}
+
+				}
+				
 				inserted++;
 			}
 
