@@ -145,9 +145,9 @@ public class RDBMSSIRepositoryManager implements Serializable {
 	 */
 	
 	final static TableDescription classTable = new TableDescription("QUEST_CLASS_ASSERTION", 
-			ImmutableMap.of("\"URI\"", "INTEGER NOT NULL", 
-					        "\"IDX\"", "SMALLINT NOT NULL", 
-					        "ISBNODE", "BOOLEAN NOT NULL DEFAULT FALSE"), "\"URI\" as X");
+			ImmutableMap.of("URI", "INTEGER NOT NULL", 
+					        "IDX", "SMALLINT NOT NULL", 
+					        "ISBNODE", "BOOLEAN NOT NULL DEFAULT FALSE"), "URI as X");
 	
     final static Map<COL_TYPE ,TableDescription> attributeTable = new HashMap<>();
 	
@@ -171,11 +171,11 @@ public class RDBMSSIRepositoryManager implements Serializable {
 		classTable.indexOn("idxclassfull2", "URI, IDX");
 		
 		TableDescription roleTable = new TableDescription("QUEST_OBJECT_PROPERTY_ASSERTION", 
-				ImmutableMap.of("\"URI1\"", "INTEGER NOT NULL", 
-						        "\"URI2\"", "INTEGER NOT NULL", 
-						        "\"IDX\"", "SMALLINT NOT NULL", 
+				ImmutableMap.of("URI1", "INTEGER NOT NULL", 
+						        "URI2", "INTEGER NOT NULL", 
+						        "IDX", "SMALLINT NOT NULL", 
 						        "ISBNODE", "BOOLEAN NOT NULL DEFAULT FALSE", 
-						        "ISBNODE2", "BOOLEAN NOT NULL DEFAULT FALSE"), "\"URI1\" as X, \"URI2\" as Y");
+						        "ISBNODE2", "BOOLEAN NOT NULL DEFAULT FALSE"), "URI1 as X, URI2 as Y");
 		attributeTable.put(COL_TYPE.OBJECT, roleTable);
 
 		roleTable.indexOn("idxrolefull1", "URI1, URI2, IDX, ISBNODE, ISBNODE2");
@@ -186,11 +186,11 @@ public class RDBMSSIRepositoryManager implements Serializable {
 		// COL_TYPE.LITERAL is special because of one extra attribute (LANG)
 		
 		TableDescription attributeTableLiteral = new TableDescription("QUEST_DATA_PROPERTY_LITERAL_ASSERTION",
-				ImmutableMap.of("\"URI\"", "INTEGER NOT NULL", 
+				ImmutableMap.of("URI", "INTEGER NOT NULL", 
 						        "VAL", "VARCHAR(1000) NOT NULL", 
-						        "\"IDX\"", "SMALLINT NOT NULL", 
+						        "IDX", "SMALLINT NOT NULL", 
 						        "LANG", "VARCHAR(20)", 
-						        "ISBNODE", "BOOLEAN NOT NULL DEFAULT FALSE"), "\"URI\" as X, VAL as Y, LANG as Z");
+						        "ISBNODE", "BOOLEAN NOT NULL DEFAULT FALSE"), "URI as X, VAL as Y, LANG as Z");
 		attributeTable.put(COL_TYPE.LITERAL, attributeTableLiteral);
 			
 		attributeTableLiteral.indexOn("IDX_LITERAL_ATTRIBUTE" + "1", "URI");		
@@ -234,10 +234,10 @@ public class RDBMSSIRepositoryManager implements Serializable {
 		
 		for (AttributeTableDescritpion descrtiption : attributeDescritions) {
 			TableDescription table = new TableDescription(descrtiption.tableName,
-					ImmutableMap.of("\"URI\"", "INTEGER NOT NULL", 
+					ImmutableMap.of("URI", "INTEGER NOT NULL", 
 							        "VAL", descrtiption.sqlTypeName, 
-							        "\"IDX\"", "SMALLINT  NOT NULL", 
-							        "ISBNODE", "BOOLEAN NOT NULL DEFAULT FALSE"), "\"URI\" as X, VAL as Y");
+							        "IDX", "SMALLINT  NOT NULL", 
+							        "ISBNODE", "BOOLEAN NOT NULL DEFAULT FALSE"), "URI as X, VAL as Y");
 			attributeTable.put(descrtiption.type, table);
 			
 			table.indexOn(descrtiption.indexName + "1", "URI");		
@@ -380,8 +380,18 @@ public class RDBMSSIRepositoryManager implements Serializable {
 
 		try {
 			while (data.hasNext()) {
-				Assertion ax = data.next();
-
+				Assertion ax = null;
+				try {
+				 ax = data.next();
+				}
+				catch(Exception e) {
+					if(e.getMessage().contains("Unsupported subject found in triple")) {
+						break;
+					}
+					else {
+						throw(e);
+					}
+				}
 				// log.debug("Inserting statement: {}", ax);
 				batchCount++;
 				commitCount++;
@@ -427,6 +437,9 @@ public class RDBMSSIRepositoryManager implements Serializable {
 							counter = 0;
 						failures.put(predicate, counter + 1);					
 					}
+				}
+				else {
+					break;
 				}
 
 

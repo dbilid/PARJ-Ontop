@@ -142,6 +142,7 @@
         <airline.version>2.1.0</airline.version>
         <tomcat-jdbc.version>9.0.0.M1</tomcat-jdbc.version>
         <r2rml-api.version>0.3.1</r2rml-api.version>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
 	<build>
@@ -234,6 +235,9 @@
      </dependency>
    </dependencies>
 </plugin>
+
+
+
 			</plugins>
 		</pluginManagement>
 		<plugins>

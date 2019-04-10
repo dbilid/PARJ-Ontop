@@ -51,15 +51,12 @@ import java.sql.Connection;
  */
 public class LUBM50Tests {
 
-	String driver = "com.mysql.jdbc.Driver";
-//	String url = "jdbc:mysql://obdalin3.inf.unibz.it/lubmex20100?sessionVariables=sql_mode='ANSI'&useCursorFetch=true";
-//	String username = "fish";
-//	String password = "fish";
-	String url = "jdbc:mysql://obdalin3.inf.unibz.it/lubmex20200?sessionVariables=sql_mode='ANSI'&useCursorFetch=true";
-	String username = "fish";
-	String password = "fish";
-
-	String owlfile = "../quest-owlapi3/src/test/resources/test/lubm-ex-20-uni1/LUBM-ex-20.owl";
+	String driver = "org.postgresql.Driver";
+	String url = "jdbc:postgresql://127.0.0.1/tmp";
+	String username = "postgres";
+	String password = "gray769watt724!@#";
+	
+	String owlfile = "../quest-owlapi3/src/test/resources/test/lubm-ex-20-uni1/merge.owl";
 
 	OBDADataFactory fac = OBDADataFactoryImpl.getInstance();
 	private OWLOntology ontology;
@@ -72,8 +69,8 @@ public class LUBM50Tests {
 		try {
 			LUBM50Tests t = new LUBM50Tests();
 
-//			 t.test1Setup();
-//			t.test2RestoringAndLoading();
+			// t.test1Setup();
+		//	t.test2RestoringAndLoading();
 //			t.test4mergeFiles();
 			 t.test3InitializingQuest();
 		} catch (Exception e) {
@@ -86,7 +83,7 @@ public class LUBM50Tests {
 		manager = OWLManager.createOWLOntologyManager();
 		ontology = manager.loadOntologyFromOntologyDocument(new File(owlfile));
 
-		source = fac.getDataSource(URI.create("http://www.obda.org/ABOXDUMP1testx1"));
+		source = fac.getDataSource(URI.create("http://swat.cse.lehigh.edu/onto/univ-bench.owl#"));
 		source.setParameter(RDBMSourceParameterConstants.DATABASE_DRIVER, driver);
 		source.setParameter(RDBMSourceParameterConstants.DATABASE_PASSWORD, password);
 		source.setParameter(RDBMSourceParameterConstants.DATABASE_URL, url);
@@ -126,9 +123,9 @@ public class LUBM50Tests {
 
 			int insert = 0;
 			
-			for (int i = 0; i < 1; i++) {
-				log.info("Started University {}", i);
-				final int index = i;
+		//	for (int i = 0; i < 1; i++) {
+			//	log.info("Started University {}", i);
+			//	final int index = i;
 
 //				File folder = new File("/Users/mariano/Downloads/lubm200/");
 //
@@ -145,12 +142,12 @@ public class LUBM50Tests {
 //					
 //					String ntripleFile = "/Users/mariano/Downloads/lubm200/" + datafiles[j];
 //					System.out.println(ntripleFile);
-					insert += simanager.insertDataNTriple("/Users/mariano/Downloads/lubm200/fullUniversity"+i+".ttl", "", 500000, 100000);
+					insert += simanager.insertDataNTriple("/media/dimitris/T/EUGen/lubm10univ5hole20subclass/all.nt", "", 500000, 100000);
 //				}
 				log.info("Total Inserts: {}", insert);
-				
+				System.out.println("added "+insert+  "triples");
 
-			}
+		//	}
 			simanager.updateMetadata();
 			log.info("Metadata updated");
 
@@ -191,10 +188,11 @@ public class LUBM50Tests {
 
 		QueryController qc = new QueryController();
 		QueryIOManager qman = new QueryIOManager(qc);
-		qman.load("../quest-owlapi3/src/test/resources/test/treewitness/LUBM-ex-20-q3.q");
+		//qman.load("/home/dimitris/Downloads/LUBM-ex-20-SPARQL.txt");
+		qman.load("/tmp/one.q");
 
-		BufferedWriter out1 = new BufferedWriter(new FileWriter("/Users/mariano/Desktop/logLUBM200-queries2.txt"));
-		BufferedWriter out2 = new BufferedWriter(new FileWriter("/Users/mariano/Desktop/queriesLUBM200-queries2.txt"));
+		//BufferedWriter out1 = new BufferedWriter(new FileWriter("/Users/mariano/Desktop/logLUBM200-queries2.txt"));
+		//BufferedWriter out2 = new BufferedWriter(new FileWriter("/Users/mariano/Desktop/queriesLUBM200-queries2.txt"));
 		
 		for (QueryControllerEntity e : qc.getElements()) {
 			if (!(e instanceof QueryControllerQuery)) {
@@ -237,30 +235,30 @@ public class LUBM50Tests {
 				}
 				end = System.nanoTime();
 				long fetchtime = end-start; */
-				out2.write("Query: " + query.getID() + "\n");
-				out2.write(st.getUnfolding(query.getQuery())+ "\n\n+++++++++++++++++++++++++++\n\n");
+				System.out.println("Query: " + query.getID() + "\n");
+				System.out.println(st.getUnfolding(query.getQuery())+ "\n\n+++++++++++++++++++++++++++\n\n");
 				
 				/*log.debug("Total result: {}", count);
 				log.debug("Elapsed time: {} ms", time);
 				res.close();*/
 				
 //			}
-			out1.write("QUERY: " + query.getID() + "\n");
-			out1.write("Execution time: " + time + "\n");
-			out1.write("Results: " + count + "\n");
-			out1.write("Time to fetch: " + fetchtime + "\n");
-			out1.write("\n\n+++++++++++++++++++++++++++\n\n");
+				System.out.println("QUERY: " + query.getID() + "\n");
+				System.out.println("Execution time: " + time + "\n");
+				System.out.println("Results: " + count + "\n");
+				System.out.println("Time to fetch: " + fetchtime + "\n");
+				System.out.println("\n\n+++++++++++++++++++++++++++\n\n");
 
-			out2.flush();
-			out1.flush();
+			//out2.flush();
+			//out1.flush();
 
 			log.debug("Average time for query: {}  is:  {} nanos", query.getID(), totaltime/1);
 
 		}
-		out2.flush();
-		out2.close();
-		out1.flush();
-		out1.close();
+		//out2.flush();
+		//out2.close();
+		//out1.flush();
+		//out1.close();
 	}
 		
 		

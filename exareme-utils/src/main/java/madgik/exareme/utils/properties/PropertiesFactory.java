@@ -3,8 +3,8 @@
  */
 package madgik.exareme.utils.properties;
 
-import org.apache.log4j.Logger;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Enumeration;
@@ -17,7 +17,7 @@ import java.util.ResourceBundle;
  */
 public class PropertiesFactory {
 
-    private static Logger log = Logger.getLogger(PropertiesFactory.class);
+    private static Logger log = LoggerFactory.getLogger(PropertiesFactory.class);
 
     public static GenericProperties loadProperties(String propertiesName) throws Exception {
         Properties properties = new Properties();

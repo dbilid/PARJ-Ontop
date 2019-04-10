@@ -432,13 +432,18 @@ public class NodeCostEstimator {
 		// }*/
 
 		//if (responseTime < 0) {
+		if (leftRelTuples < 1 || rightRelTuples < 1) {
+			return 0.0;
+		}
+		if(rightRelTuples<5) {
+			//avoid log of very small values;
+			rightRelTuples=5;
+		}
 			responseTime = leftRelTuples * Math.log(rightRelTuples) * Metadata.PAGE_IO_TIME
 					* Metadata.INDEX_UTILIZATION;
 		//}
 
-		if (leftRelTuples < 1 || rightRelTuples < 1) {
-			return 0.0;
-		}
+		
 
 		if (Double.isNaN(responseTime)) {
 			System.err.println("cost in Nan");
@@ -507,13 +512,18 @@ public class NodeCostEstimator {
 		// }*/
 
 		//if (responseTime < 0) {
-			responseTime = leftRelTuples * Math.log(rightRelTuples) * Metadata.PAGE_IO_TIME
-					* Metadata.INDEX_UTILIZATION * Metadata.INDEX_UTILIZATION;
-		//}
-
 		if (leftRelTuples < 1 || rightRelTuples < 1) {
 			return 0.0;
 		}
+		if(rightRelTuples<5) {
+			//avoid log of very small values;
+			rightRelTuples=5;
+		}
+		
+			responseTime = leftRelTuples * Math.log(rightRelTuples) * Metadata.PAGE_IO_TIME
+					* Metadata.INDEX_UTILIZATION * Metadata.INDEX_UTILIZATION;
+		//}
+		
 
 		if (Double.isNaN(responseTime)) {
 			System.err.println("cost in Nan");

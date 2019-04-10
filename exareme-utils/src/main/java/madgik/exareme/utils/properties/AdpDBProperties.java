@@ -3,14 +3,16 @@
  */
 package madgik.exareme.utils.properties;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * @author herald
  */
 public class AdpDBProperties {
     private static final GenericProperties adpDBProperties;
-    private static final Logger log = Logger.getLogger(AdpDBProperties.class);
+    private static final Logger log = LoggerFactory.getLogger(AdpDBProperties.class);
 
     static {
         try {

@@ -8,6 +8,7 @@ import madgik.exareme.master.queryProcessor.decomposer.dag.Node;
 import madgik.exareme.master.queryProcessor.decomposer.query.*;
 import madgik.exareme.master.queryProcessor.estimator.db.RelInfo;
 import madgik.exareme.master.queryProcessor.estimator.db.Schema;
+import madgik.exareme.master.queryProcessor.estimator.histogram.Bucket;
 import madgik.exareme.master.queryProcessor.estimator.histogram.Histogram;
 import madgik.exareme.master.queryProcessor.estimator.db.AttrInfo;
 
@@ -560,17 +561,35 @@ public class NodeSelectivityEstimator {
 	public void estimateUnion(Node n) {
 		Node unionOp = n.getChildAt(0);
 		List<Node> children = unionOp.getChildren();
+		NodeInfo ni = new NodeInfo();
+		ni.setResultRel(children.get(0).getNodeInfo().getResultRel());
 		double numOfTuples = 0;
 		double tupleLength = children.get(0).getNodeInfo().getTupleLength();
-
+		double maxTuples=0;
 		for (Node cn : children) {
 			numOfTuples += cn.getNodeInfo().getNumberOfTuples();
+			if(cn.getNodeInfo().getNumberOfTuples()>maxTuples) {
+				maxTuples=cn.getNodeInfo().getNumberOfTuples();
+				ni.setResultRel(cn.getNodeInfo().getResultRel());
+			}
 		}
-		NodeInfo ni = new NodeInfo();
+		
+		
 		// TODO: fix nodeInfo
-		ni.setResultRel(children.get(0).getNodeInfo().getResultRel());
+		double tuplesOfFirstChild=children.get(0).getNodeInfo().getNumberOfTuples();
+		numOfTuples=maxTuples;
+		double multiplicity=numOfTuples/tuplesOfFirstChild;
+		
 		ni.setNumberOfTuples(numOfTuples);
+		ni.getResultRel().setNumberOfTuples(numOfTuples);
 		ni.setTupleLength(tupleLength);
+		if(multiplicity>1) {
+			for(AttrInfo ai:ni.getResultRel().getAttrIndex().values()) {
+				for(Bucket b:ai.getHistogram().getBucketIndex().values()) {
+					b.setFrequency(b.getFrequency()*multiplicity);
+				}
+			}
+		}
 		n.setNodeInfo(ni);
 	}
 
@@ -739,6 +758,7 @@ public class NodeSelectivityEstimator {
 		// adding necessary equivalent hashing attribures
 
 		// TODO: fix nodeInfo
+		
 		ni.setNumberOfTuples(resultRel.getNumberOfTuples());
 		ni.setTupleLength(resultRel.getTupleLength());
 		ni.setResultRel(resultRel);

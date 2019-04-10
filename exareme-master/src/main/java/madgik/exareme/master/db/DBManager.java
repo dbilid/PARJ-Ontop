@@ -20,13 +20,13 @@ public class DBManager {
 		this.sources = new HashMap<String, BasicDataSource>();
 	}
 
-	public Connection getConnection(String path, int partitions) throws SQLException {
+	public Connection getConnection(String path, int partitions, String vtable) throws SQLException {
 		if (!path.endsWith("/")) {
 			path += "/";
 		}
 		path += "rdf.db";
 		if (!sources.containsKey(path)) {
-			sources.put(path, createDataSource(path, partitions+4));
+			sources.put(path, createDataSource(path, partitions+4, vtable));
 		}
 		Connection c = sources.get(path).getConnection();
 
@@ -36,7 +36,7 @@ public class DBManager {
 
 	}
 
-	private BasicDataSource createDataSource(String filepath, int maxOpen) {
+	private BasicDataSource createDataSource(String filepath, int maxOpen, String vtable) {
 		BasicDataSource ds = new BasicDataSource();
 		ds.setDriverClassName("org.sqlite.JDBC");
 		ds.setUsername("");
@@ -65,7 +65,7 @@ public class DBManager {
 		if(!filepath.equals("memory/rdf.db")){
 			init.add("attach database '"+filepath+"' as m");
 		}
-		init.add("select load_extension('" + DecomposerUtils.WRAPPER_VIRTUAL_TABLE + "')");
+		init.add("select load_extension('" + vtable + "')");
 		ds.setConnectionInitSqls(init);
 
 		return ds;

@@ -1,94 +1,95 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	   <parent>
-        <artifactId>ontop</artifactId>
-        <groupId>it.unibz.inf.ontop</groupId>
-        <version>1.18.1-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
+	<parent>
+		<artifactId>ontop</artifactId>
+		<groupId>it.unibz.inf.ontop</groupId>
+		<version>1.18.1-SNAPSHOT</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
 
-    <artifactId>exareme-master</artifactId>
-    <name>exareme-master</name>
+	<artifactId>exareme-master</artifactId>
+	<name>exareme-master</name>
 
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <type>jar</type>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <type>jar</type>
-        </dependency>
-        
-        <dependency>
-    		<groupId>org.apache.commons</groupId>
-    		<artifactId>commons-dbcp2</artifactId>
-    		<version>2.1.1</version>
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<type>jar</type>
+			<scope>test</scope>
 		</dependency>
 
-        <!-- db drivers -->
-        <dependency>
-            <groupId>org.xerial</groupId>
-            <artifactId>sqlite-jdbc</artifactId>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-        	<groupId>org.postgresql</groupId>
-        	<artifactId>postgresql</artifactId>
-        </dependency>
-        <!-- http -->
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpcore-nio</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpasyncclient</artifactId>
-        </dependency>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<type>jar</type>
+		</dependency>
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<type>jar</type>
+		</dependency>
 
-        <!-- visualization deps -->
-        <dependency>
-            <groupId>org.jfree</groupId>
-            <artifactId>jcommon</artifactId>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>jgraph</groupId>
-            <artifactId>jgraph</artifactId>
-        </dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-dbcp2</artifactId>
+			<version>2.1.1</version>
+		</dependency>
 
-        <!-- internal deps-->
-        <dependency>
-            <groupId>madgik</groupId>
-            <artifactId>exareme-utils</artifactId>
-            <version>0.1-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>madgik</groupId>
-            <artifactId>exareme-jdbc</artifactId>
-            <version>0.1-SNAPSHOT</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>com.foundationdb</groupId>
-            <artifactId>fdb-sql-parser</artifactId>
-            <version>1.6.1</version>
-        </dependency>
+		<!-- db drivers -->
+		<dependency>
+			<groupId>org.xerial</groupId>
+			<artifactId>sqlite-jdbc</artifactId>
+			<type>jar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+		</dependency>
+		<!-- http -->
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpcore-nio</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpasyncclient</artifactId>
+		</dependency>
 
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>18.0</version>
-        </dependency>
+		<!-- visualization deps -->
+		<dependency>
+			<groupId>org.jfree</groupId>
+			<artifactId>jcommon</artifactId>
+			<type>jar</type>
+		</dependency>
+		<dependency>
+			<groupId>jgraph</groupId>
+			<artifactId>jgraph</artifactId>
+		</dependency>
+
+		<!-- internal deps -->
+		<dependency>
+			<groupId>madgik</groupId>
+			<artifactId>exareme-utils</artifactId>
+			<version>0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>madgik</groupId>
+			<artifactId>exareme-jdbc</artifactId>
+			<version>0.1-SNAPSHOT</version>
+			<type>jar</type>
+		</dependency>
+		<dependency>
+			<groupId>com.foundationdb</groupId>
+			<artifactId>fdb-sql-parser</artifactId>
+			<version>1.6.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>18.0</version>
+		</dependency>
 
 		<dependency>
 			<artifactId>exareme-jdbc</artifactId>
@@ -96,26 +97,34 @@
 			<version>${project.version}</version>
 		</dependency>
 
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.4</version>
-        </dependency>
-        
-            <dependency>
-      <groupId>org.eclipse.rdf4j</groupId>
-      <artifactId>rdf4j-runtime</artifactId>
-      <version>2.1.6</version>
-    </dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.4</version>
+		</dependency>
 
-	<dependency>
-                <groupId>org.xerial</groupId>
-                <artifactId>sqlite-jdbc</artifactId>
-                <version>3.21.0.1</version>
-                <type>jar</type>
-            </dependency>
-            
-            <dependency>
+		<dependency>
+			<groupId>org.eclipse.rdf4j</groupId>
+			<artifactId>rdf4j-runtime</artifactId>
+			<version>2.1.6</version>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-core</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.xerial</groupId>
+			<artifactId>sqlite-jdbc</artifactId>
+			<version>3.21.0.1</version>
+			<type>jar</type>
+		</dependency>
+
+		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>ontop-obdalib-core</artifactId>
 			<version>${project.version}</version>
@@ -123,6 +132,11 @@
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>ontop-obdalib-owlapi</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>ontop-quest-owlapi</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
@@ -135,7 +149,7 @@
 			<artifactId>ontop-obdalib-sesame</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>net.sourceforge.owlapi</groupId>
 			<artifactId>owlapi-api</artifactId>
@@ -144,18 +158,35 @@
 			<groupId>net.sourceforge.owlapi</groupId>
 			<artifactId>owlapi-apibinding</artifactId>
 		</dependency>
-		
 
 
-    </dependencies>
-   
 
- <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-            </resource>
-        </resources>
-    </build>
+	</dependencies>
+
+
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<artifactId>maven-assembly-plugin</artifactId>
+					<configuration>
+						<archive>
+							<manifest>
+								<mainClass>madgik.exareme.master.queryProcessor.QueryTester</mainClass>
+							</manifest>
+						</archive>
+						<descriptorRefs>
+							<descriptorRef>jar-with-dependencies</descriptorRef>
+						</descriptorRefs>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+	</build>
 </project>

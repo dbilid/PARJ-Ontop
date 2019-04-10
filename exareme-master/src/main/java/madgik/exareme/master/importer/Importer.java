@@ -69,19 +69,20 @@ public class Importer {
 		boolean execute = args[0].equals("query");
 		int partitions = Integer.parseInt(args[2]);
 		String database = args[1];
+		String vtable=args[2];
 
 		DBManager m = new DBManager();
 
 		long start = System.currentTimeMillis();
 		if (analyzeOnly) {
-			Connection mainCon = m.getConnection(database, 2);
+			Connection mainCon = m.getConnection(database, 2, vtable);
 			analyzeDB(mainCon, database);
 			mainCon.close();
 			return;
 		}
 		if (importData) {
 
-			Connection c = m.getConnection("memory", 2);
+			Connection c = m.getConnection("memory", 2, vtable);
 
 			// InputStream s = readFile(args[3]);
 			String importToSqlite = "create virtual table tmptable using importer(";
@@ -95,7 +96,7 @@ public class Importer {
 			System.out.println("imported in:" + (System.currentTimeMillis() - start) + " ms");
 			st.close();
 			c.close();
-			Connection mainCon = m.getConnection(database, 2);
+			Connection mainCon = m.getConnection(database, 2, vtable);
 
 			mainCon.createStatement().execute("VACUUM");
 			System.out.println("vacuum in:" + (System.currentTimeMillis() - start) + " ms");
@@ -111,7 +112,7 @@ public class Importer {
 			return;
 		}
 
-		Connection single = m.getConnection(database, partitions);
+		Connection single = m.getConnection(database, partitions, vtable);
 		// single.setTransactionIsolation(single.TRANSACTION_READ_UNCOMMITTED);
 		if (run) {
 			System.out.println("loading data in memory...");
@@ -124,7 +125,7 @@ public class Importer {
 
 			System.out.println("data loaded" + (System.currentTimeMillis() - start) + " ms");
 			createVirtualTables(single, partitions);
-			warmUpDBManager(partitions, database, m);
+			warmUpDBManager(partitions, database, m, vtable);
 
 		}
 
@@ -147,7 +148,7 @@ public class Importer {
 			NodeSelectivityEstimator nse = new NodeSelectivityEstimator(database + "histograms.json");
 			NodeHashValues hashes = new NodeHashValues();
 			hashes.setSelectivityEstimator(nse);
-			Connection mainCon = m.getConnection(database, 2);
+			Connection mainCon = m.getConnection(database, 2, vtable);
 			try {
 
 				// Schema stats = a.analyze();
@@ -244,7 +245,7 @@ public class Importer {
 						Collection<Future<?>> futures = new LinkedList<Future<?>>();
 						for (int i = 0; i < partitions; i++) {
 							// String sql=result.getSqlForPartition(i);
-							cons[i] = m.getConnection(database, partitions);
+							cons[i] = m.getConnection(database, partitions, vtable);
 
 							// createVirtualTables(cons[i], partitions);
 							SQLiteLocalExecutor ex = new SQLiteLocalExecutor(result, cons[i],
@@ -348,12 +349,12 @@ public class Importer {
 
 	}
 
-	private static void warmUpDBManager(int partitions, String database, DBManager m) throws SQLException {
+	private static void warmUpDBManager(int partitions, String database, DBManager m, String vtable) throws SQLException {
 		System.out.println("warming up DB manager...");
 		long start = System.currentTimeMillis();
 		List<Connection> cons = new ArrayList<Connection>(partitions + 2);
 		for (int i = 0; i < partitions + 2; i++) {
-			Connection next = m.getConnection(database, partitions);
+			Connection next = m.getConnection(database, partitions, vtable);
 			createVirtualTables(next, partitions);
 			cons.add(next);
 		}

@@ -11,7 +11,7 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>${project.groupId}</groupId>
+			<groupId>it.unibz.inf.ontop</groupId>
 			<artifactId>ontop-obdalib-core</artifactId>
 			<version>${project.version}</version>
 		</dependency>

@@ -50,12 +50,12 @@ import java.sql.Connection;
  */
 public class SemanticIndexManagerLUBMMySQLTest extends TestCase {
 
-	String driver = "com.mysql.jdbc.Driver";
-	String url = "jdbc:mysql://10.7.20.39/si_test?sessionVariables=sql_mode='ANSI'";
-	String username = "fish";
-	String password = "fish";
+	String driver = "org.postgresql.Driver";
+	String url = "jdbc:postgresql://127.0.0.1/tmp";
+	String username = "postgres";
+	String password = "gray769watt724!@#";
 	
-	String owlfile = "../quest-owlapi3/src/test/resources/test/lubm-ex-20-uni1/University0_0.owl";
+	String owlfile = "../quest-owlapi3/src/test/resources/test/lubm-ex-20-uni1/merge.owl";
 
 	OBDADataFactory fac = OBDADataFactoryImpl.getInstance();
 	private OWLOntology ontology;

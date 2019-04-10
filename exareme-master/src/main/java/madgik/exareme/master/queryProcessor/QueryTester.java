@@ -20,10 +20,14 @@ import madgik.exareme.master.db.DBManager;
 import madgik.exareme.master.db.FinalUnionExecutor;
 import madgik.exareme.master.db.ResultBuffer;
 import madgik.exareme.master.db.SQLiteLocalExecutor;
-import madgik.exareme.master.queryProcessor.decomposer.DecomposerUtils;
 import madgik.exareme.master.queryProcessor.decomposer.dag.Node;
 import madgik.exareme.master.queryProcessor.decomposer.dag.NodeHashValues;
+import madgik.exareme.master.queryProcessor.decomposer.query.Column;
+import madgik.exareme.master.queryProcessor.decomposer.query.NonUnaryWhereCondition;
+import madgik.exareme.master.queryProcessor.decomposer.query.Output;
+import madgik.exareme.master.queryProcessor.decomposer.query.SQLColumn;
 import madgik.exareme.master.queryProcessor.decomposer.query.SQLQuery;
+import madgik.exareme.master.queryProcessor.decomposer.query.Table;
 import madgik.exareme.master.queryProcessor.estimator.NodeSelectivityEstimator;
 import madgik.exareme.master.queryProcessor.sparql.DagCreator;
 import madgik.exareme.master.queryProcessor.sparql.DagCreatorDatalogNew;
@@ -43,6 +47,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -57,8 +62,11 @@ import org.semanticweb.owlapi.model.OWLException;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.reasoner.SimpleConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 public class QueryTester {
@@ -69,7 +77,7 @@ public class QueryTester {
 
 	// Constructor args:
 	private String owlfile;
-	private String obdafile;
+	private static String vtable;
 	private String constraints_file;
 	private String tmap_conf_file;
 	private String[] query_files;
@@ -81,9 +89,10 @@ public class QueryTester {
 	private StringBuffer obdaFile;
 	private String dir;
 	private int partitions=1;
+	boolean print=false;
+	boolean aggregator=false;
 	
 	// For R2RML
-	private boolean is_r2rml;
 	private String db_creds_file;
 	private String db_name;
 	private String dbuser;
@@ -99,15 +108,18 @@ public class QueryTester {
 	private final String RETRIEVING = "Retrieving";
 	private final String OUTPUTTING = "Outputting";
 
-	Logger log = LoggerFactory.getLogger(this.getClass());
 	private String histograms;
 	private DBManager m;
 	private boolean run=true;
+	
+
 
 	public static void main(String[] args) throws IOException {
 
 		System.out.println("GO!");
-
+		Handler consoleHandler = new ConsoleHandler();
+		consoleHandler.setLevel(Level.FINER);
+		Logger.getAnonymousLogger().addHandler(consoleHandler);
 		if (args.length < 6) {
 			System.out.println("Usage");
 			System.out.println(
@@ -116,7 +128,7 @@ public class QueryTester {
 			System.out.println(
 					" sql|<timeout>  :  sql for only sql output, otherwise timeout in seconds. 0 for running sql without timeout");
 			System.out.println(" owlfile        :  path to OWL file");
-			System.out.println(" obdafile       :  path to OBDA or R2RML file");
+			System.out.println(" vtable       :  path to vtable");
 			System.out.println("[ db_creds_file :  if R2RML, path to file with db credentials ]");
 			System.out.println("  constraints   :  0 or path to file with external db constraints");
 			System.out.println("  tmap_conf_file   :  0 or path to file with tmap configuration");
@@ -151,16 +163,13 @@ public class QueryTester {
 
 		String owlfile = args[i++].trim();
 		String obdafile = args[i++].trim();
-		boolean is_r2rml = obdafile.indexOf(".obda") == -1 ? true : false;
-		String db_creds_file = null;
-		if (is_r2rml)
-			db_creds_file = args[i++].trim();
+		
 		String constraints_file = args[i++].trim();
 		String tmap_conf_file = args[i++].trim();
 		// String[] query_files = Arrays.copyOfRange(args, i, args.length);
 		String[] query_files = readFilesFromDir(args[i++]);
 		String histograms = args[i++].trim();
-
+		int parts=Integer.parseInt(args[i++]);
 		// for(int test_no = 0; test_no < 5; test_no++){
 		QueryTester tester;
 		
@@ -176,8 +185,8 @@ public class QueryTester {
 		 * "KEYS"), db_creds_file, null); tester.runQueries();
 		 * Thread.sleep(7200000);
 		 */
-		tester = new QueryTester(owlfile, obdafile, constraints_file, is_r2rml, query_files, run_sql, timeout,
-				output + "/" + "666" + "NOTUNING", db_creds_file, null, histograms);
+		tester = new QueryTester(owlfile, obdafile, constraints_file, query_files, run_sql, timeout,
+				output + "/" + "666" + "NOTUNING", null, histograms, parts);
 		tester.runQueries();
 		// Thread.sleep(7200000);
 
@@ -207,21 +216,20 @@ public class QueryTester {
 	 * 
 	 * @param histograms
 	 **/
-	public QueryTester(String owlfile, String obdafile, String constraints_file, boolean is_r2rml, String[] query_files,
-			boolean run_sql, int timeout, String output, String db_creds_file, String tmap_conf_file,
-			String histograms) {
+	public QueryTester(String owlfile, String obdafile, String constraints_file, String[] query_files,
+			boolean run_sql, int timeout, String output, String tmap_conf_file,
+			String histograms, int parts) {
 		this.owlfile = owlfile;
-		this.obdafile = obdafile;
-		this.is_r2rml = is_r2rml;
+		this.vtable = obdafile;
 		this.query_files = query_files;
 		this.run_sql = run_sql;
 		this.timeout = timeout;
 		this.outputfolder = output;
-		this.db_creds_file = db_creds_file;
 		this.constraints_file = constraints_file;
 		this.tmap_conf_file = tmap_conf_file;
 		this.histograms = histograms;
 		this.dir=histograms.replace("histograms.json", "");
+		this.partitions=parts;
 	}
 
 	/**
@@ -262,7 +270,7 @@ public class QueryTester {
 		m = new DBManager();
 		//warmUpDBManager(partitions, dir, m);
 		
-		single = m.getConnection(dir, partitions);
+		single = m.getConnection(dir, partitions, vtable);
 		
 			if (run) {
 			
@@ -300,20 +308,12 @@ public class QueryTester {
 		OBDADataFactory fac = OBDADataFactoryImpl.getInstance();
 		
 
-		if (!this.is_r2rml) {
 			myLog("Loading obda file");
 			obdaModel = fac.getOBDAModel();
 			ModelIOManager ioManager = new ModelIOManager(obdaModel);
 			ioManager.load(new ByteArrayInputStream(obdaFile.toString().getBytes()));
 			//ioManager.load(obdafile);
-		} else {
-			myLog("Loading r2rml file");
-			R2RMLReader reader = new R2RMLReader(obdafile);
-			String sourceUrl = obdafile;
-			this.read_db_credentials(this.db_creds_file);
-			OBDADataSource dataSource = fac.getJDBCDataSource(sourceUrl, jdbc_url, dbuser, dbpassword, jdbc_driver);
-			obdaModel = reader.readModel(dataSource);
-		}
+		
 
 		myDone();
 
@@ -376,7 +376,7 @@ public class QueryTester {
 		long start = System.currentTimeMillis();
 		List<Connection> cons = new ArrayList<Connection>(partitions + 2);
 		for (int i = 0; i < partitions + 2; i++) {
-			Connection next = m.getConnection(database, partitions);
+			Connection next = m.getConnection(database, partitions, vtable);
 			createVirtualTables(next, partitions);
 			cons.add(next);
 		}
@@ -480,13 +480,10 @@ public class QueryTester {
 
 	public void runQueries() {
 		try {
-			initQuest(owlfile, obdafile);
+			initQuest(owlfile, vtable);
 			if (conn == null) {
-				if (this.is_r2rml)
-					System.err.println(
-							"Could not load connection with " + this.db_creds_file + " to '" + this.jdbc_url + "'");
-				else
-					System.err.println("Could not load connection with obdafile " + obdafile);
+				
+					System.err.println("Could not load connection with obdafile " + vtable);
 
 				System.exit(0);
 			}
@@ -601,6 +598,37 @@ public class QueryTester {
 			//System.out.println(result2.getSqlForPartition(0));
 			//boolean run=true;
 			long start = System.currentTimeMillis();
+			
+			// add dictionary lookups
+			/*int out = 1;
+			Map<Column, SQLColumn> toChange = new HashMap<Column, SQLColumn>();
+
+			for (Column outCol : result2.getAllOutputColumns()) {
+				Table dict=new Table(-1, -1);
+				dict.setDictionary(out);
+				result2.addInputTable(dict);
+				NonUnaryWhereCondition dictJoin = new NonUnaryWhereCondition(outCol.clone(),
+						new SQLColumn("d"+out, "id"), "=");
+				result2.addBinaryWhereCondition(dictJoin);
+				toChange.put(outCol.clone(), new SQLColumn("d"+out, "uri"));
+				out++;
+			}
+
+			for (Output o : result2.getOutputs()) {
+				for (Column c : toChange.keySet()) {
+					if(o.getObject() instanceof Column){
+						Column c2=(Column)o.getObject();
+						if(c2.equals(c)){
+							o.setObject(toChange.get(c));
+						}
+					}
+					else{
+						//System.err.println("projection not column");
+					}
+					//o.getObject().changeColumn(c, toChange.get(c));
+				}
+			}*/
+			
 			if (run) {
 				
 				
@@ -622,21 +650,21 @@ public class QueryTester {
 				Collection<Future<?>> futures = new LinkedList<Future<?>>();
 				for (int i = 0; i < partitions; i++) {
 					// String sql=result.getSqlForPartition(i);
-					cons[i] = m.getConnection(dir, partitions);
+					cons[i] = m.getConnection(dir, partitions, vtable);
 
 					// createVirtualTables(cons[i], partitions);
 					SQLiteLocalExecutor ex = new SQLiteLocalExecutor(result2, cons[i],
-							DecomposerUtils.USE_RESULT_AGGREGATOR, finishedQueries, i,
-							DecomposerUtils.PRINT_RESULTS, extraCreates, unions);
+							aggregator, finishedQueries, i,
+							print, extraCreates, unions);
 
 					ex.setGlobalBuffer(globalBuffer);
 					// executors.add(ex);
 					futures.add(es.submit(ex));
 				}
 
-				if (DecomposerUtils.USE_RESULT_AGGREGATOR) {
+				if (aggregator) {
 					FinalUnionExecutor ex = new FinalUnionExecutor(globalBuffer, null, partitions,
-							DecomposerUtils.PRINT_RESULTS);
+							print);
 					// es.execute(ex);
 					futures.add(es.submit(ex));
 				}
@@ -658,7 +686,7 @@ public class QueryTester {
 				for (int i = 0; i < partitions; i++) {
 					cons[i].close();
 				}
-				if (!DecomposerUtils.USE_RESULT_AGGREGATOR) {
+				if (!aggregator) {
 					System.out.println("total results:" + globalBuffer.getFinished());
 				}
 			} else {

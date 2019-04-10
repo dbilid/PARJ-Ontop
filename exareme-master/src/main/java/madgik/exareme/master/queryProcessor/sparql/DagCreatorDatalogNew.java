@@ -265,17 +265,20 @@ public class DagCreatorDatalogNew {
 			selection = true;
 		} else if (object instanceof FunctionalTermImpl) {
 			FunctionalTermImpl fterm = (FunctionalTermImpl) object;
-			if (fterm.getArity() > 1 || !(fterm.getFunctionSymbol().getName().equals("URI"))) {
-				System.out.println("what???555 " + object);
-			} else {
-				if (fterm.getTerm(0) instanceof it.unibz.inf.ontop.model.Constant) {
-					it.unibz.inf.ontop.model.Constant con = (it.unibz.inf.ontop.model.Constant) fterm.getTerm(0);
-					createSelection(selNode, selection, con.getValue(), alias, false, addToTables);
-					selection = true;
-				} else {
-					System.out.println("what???448 " + object);
-				}
+			
+			if (fterm.getArity() > 1) {
+				System.out.println("what999 " + object);
 			}
+			else if(fterm.getFunctionSymbol().getName().equals("URI")||fterm.getFunctionSymbol().getName().equals("http://www.w3.org/2000/01/rdf-schema#Literal")) {
+				it.unibz.inf.ontop.model.Constant con = (it.unibz.inf.ontop.model.Constant) fterm.getTerm(0);
+				createSelection(selNode, selection, con.getValue(), alias, false, addToTables);
+				selection = true;
+			} else {
+				System.out.println("what???448 " + object);
+			}
+			
+			
+			
 		} else {
 			System.out.println("what???38 " + object);
 		}

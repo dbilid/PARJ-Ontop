@@ -144,6 +144,7 @@ public class SemanticIndexManager {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+				aBoxIter.addNull();
 			}
 		};
 
@@ -159,6 +160,7 @@ public class SemanticIndexManager {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+				
 				log.info("Loaded {} items into the DB.", val[0]);
 
 			}

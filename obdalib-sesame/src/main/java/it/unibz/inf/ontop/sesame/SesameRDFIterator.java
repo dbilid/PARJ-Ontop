@@ -223,4 +223,14 @@ public class SesameRDFIterator extends RDFHandlerBase implements Iterator<Assert
 	public void remove() {
 		buffer.poll();
 	}
+
+	public void addNull() {
+		try {
+			buffer.put(new SesameStatement(null));
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
 }
