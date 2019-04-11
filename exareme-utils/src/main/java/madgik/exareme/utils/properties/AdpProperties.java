@@ -4,12 +4,9 @@
 package madgik.exareme.utils.properties;
 
 
-import madgik.exareme.utils.managementBean.ManagementUtil;
-import madgik.exareme.utils.managementBean.PropertiesManagement;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.lang.management.ManagementFactory;
 import java.util.Map;
 import java.util.Properties;
 
@@ -58,15 +55,9 @@ public class AdpProperties {
             }
             systemProperties = new GenericProperties(properties);
             log.debug(systemProperties.getString("EXAREME_MADIS"));
-            PropertiesManagement propManagment = new PropertiesManagement();
-            ManagementUtil.registerMBean(propManagment, "Properties");
+           
 
-            boolean monitorCpu = envProperties.getBoolean("monitorCpuTime");
-            ManagementFactory.getThreadMXBean().setThreadCpuTimeEnabled(monitorCpu);
-
-            if (monitorCpu) {
-                log.warn("CPU Monitoring enabled!");
-            }
+            
         } catch (Exception e) {
             log.error("Cannot initialize properties", e);
             throw new RuntimeException("can not init props!");

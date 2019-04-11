@@ -10,7 +10,6 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import java.sql.PreparedStatement;
 
 import madgik.exareme.master.queryProcessor.decomposer.query.SQLQuery;
 import madgik.exareme.master.queryProcessor.sparql.UnionWrapperInfo;

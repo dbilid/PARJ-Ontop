@@ -72,12 +72,14 @@ public class Importer {
 		String vtable=args[2];
 
 		DBManager m = new DBManager();
-
+		Connection single1 = m.getConnection(database, partitions);
+		IdFetcher fetcher = new IdFetcher(single1);
+		//single1.close();
 		long start = System.currentTimeMillis();
 		if (analyzeOnly) {
-			Connection mainCon = m.getConnection(database, 2);
-			analyzeDB(mainCon, database);
-			mainCon.close();
+			//Connection mainCon = m.getConnection(database, 2);
+			analyzeDB(m, database, fetcher);
+			//mainCon.close();
 			return;
 		}
 		if (importData) {
@@ -96,11 +98,11 @@ public class Importer {
 			System.out.println("imported in:" + (System.currentTimeMillis() - start) + " ms");
 			st.close();
 			c.close();
-			Connection mainCon = m.getConnection(database, 2, vtable);
+			Connection mainCon = m.getConnection(database, 2);
 
-			mainCon.createStatement().execute("VACUUM");
+			//mainCon.createStatement().execute("VACUUM");
 			System.out.println("vacuum in:" + (System.currentTimeMillis() - start) + " ms");
-			analyzeDB(mainCon, database);
+			analyzeDB(m, database, fetcher);
 			System.out.println("analyze in:" + (System.currentTimeMillis() - start) + " ms");
 
 			// c.close();
@@ -108,11 +110,11 @@ public class Importer {
 			// createVirtualTables(c, partitions, database);
 			// System.out.println("vtables
 			// in:"+(System.currentTimeMillis()-start)+" ms");
-			mainCon.close();
+			//mainCon.close();
 			return;
 		}
 
-		Connection single = m.getConnection(database, partitions, vtable);
+		Connection single = m.getConnection(database, partitions);
 		// single.setTransactionIsolation(single.TRANSACTION_READ_UNCOMMITTED);
 		if (run) {
 			System.out.println("loading data in memory...");
@@ -125,7 +127,7 @@ public class Importer {
 
 			System.out.println("data loaded" + (System.currentTimeMillis() - start) + " ms");
 			createVirtualTables(single, partitions);
-			warmUpDBManager(partitions, database, m, vtable);
+			warmUpDBManager(partitions, database, m);
 
 		}
 
@@ -148,7 +150,7 @@ public class Importer {
 			NodeSelectivityEstimator nse = new NodeSelectivityEstimator(database + "histograms.json");
 			NodeHashValues hashes = new NodeHashValues();
 			hashes.setSelectivityEstimator(nse);
-			Connection mainCon = m.getConnection(database, 2, vtable);
+			Connection mainCon = m.getConnection(database, 2);
 			try {
 
 				// Schema stats = a.analyze();
@@ -161,7 +163,7 @@ public class Importer {
 				e.printStackTrace();
 			}
 			mainCon.close();
-			IdFetcher fetcher = new IdFetcher(single);
+			
 			fetcher.loadProperties();
 			try {
 				long typeProperty = fetcher.getIdForProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
@@ -335,8 +337,8 @@ public class Importer {
 		// System.out.println("VTs created");
 	}
 
-	private static void analyzeDB(Connection c, String db) {
-		SPARQLAnalyzer a = new SPARQLAnalyzer(c);
+	private static void analyzeDB(DBManager m, String db, IdFetcher fetcher) {
+		SPARQLAnalyzer a = new SPARQLAnalyzer(m, db, DecomposerUtils.CARDINALITY_THREADS, fetcher.getPropertyCount());
 		try {
 
 			Schema stats = a.analyze();
@@ -349,12 +351,12 @@ public class Importer {
 
 	}
 
-	private static void warmUpDBManager(int partitions, String database, DBManager m, String vtable) throws SQLException {
+	private static void warmUpDBManager(int partitions, String database, DBManager m) throws SQLException {
 		System.out.println("warming up DB manager...");
 		long start = System.currentTimeMillis();
 		List<Connection> cons = new ArrayList<Connection>(partitions + 2);
 		for (int i = 0; i < partitions + 2; i++) {
-			Connection next = m.getConnection(database, partitions, vtable);
+			Connection next = m.getConnection(database, partitions);
 			createVirtualTables(next, partitions);
 			cons.add(next);
 		}

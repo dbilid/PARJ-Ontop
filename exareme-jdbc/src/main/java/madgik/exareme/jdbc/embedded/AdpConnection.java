@@ -3,8 +3,7 @@
  */
 package madgik.exareme.jdbc.embedded;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;

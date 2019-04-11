@@ -63,18 +63,7 @@
 			<artifactId>jgraph</artifactId>
 		</dependency>
 
-		<!-- internal deps -->
-		<dependency>
-			<groupId>madgik</groupId>
-			<artifactId>exareme-utils</artifactId>
-			<version>0.1-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>madgik</groupId>
-			<artifactId>exareme-jdbc</artifactId>
-			<version>0.1-SNAPSHOT</version>
-			<type>jar</type>
-		</dependency>
+		
 		<dependency>
 			<groupId>com.foundationdb</groupId>
 			<artifactId>fdb-sql-parser</artifactId>
@@ -84,11 +73,22 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>18.0</version>
-		</dependency>
-
+			</dependency>
+	
+		<dependency>
+    <groupId>log4j</groupId>
+    <artifactId>log4j</artifactId>
+    <version>1.2.17</version>
+</dependency>
+		
+	
 		<dependency>
 			<artifactId>exareme-jdbc</artifactId>
+			<groupId>${project.groupId}</groupId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<artifactId>exareme-utils</artifactId>
 			<groupId>${project.groupId}</groupId>
 			<version>${project.version}</version>
 		</dependency>
