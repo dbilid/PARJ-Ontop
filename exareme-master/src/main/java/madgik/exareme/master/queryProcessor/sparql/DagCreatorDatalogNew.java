@@ -2,6 +2,7 @@ package madgik.exareme.master.queryProcessor.sparql;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -339,6 +340,12 @@ public class DagCreatorDatalogNew {
 		for (Function atom : expr.getBody()) {
 			Predicate pred = atom.getFunctionSymbol();
 			if (pred == OBDAVocabulary.DISJUNCTION) {
+				String predicateName=null;
+				if(atom.getTerm(atom.getTerms().size()-1) instanceof it.unibz.inf.ontop.model.Constant) {
+					it.unibz.inf.ontop.model.Constant prednm=(it.unibz.inf.ontop.model.Constant)atom.getTerm(atom.getTerms().size()-1);
+					predicateName=prednm.getValue();
+					atom.setTerm(atom.getTerms().size()-1, null);
+				}
 				alias++;
 				unionalias++;
 				filters.add(0);
@@ -347,6 +354,7 @@ public class DagCreatorDatalogNew {
 				Node union = new Node(Node.AND, Node.UNIONALL);
 				
 				for (Term conj : atom.getTerms()) {
+					if(conj == null)continue;
 					if (conj instanceof Variable) {
 						projectedVars.put((Variable) conj, position);
 						position = "o";
@@ -356,6 +364,7 @@ public class DagCreatorDatalogNew {
 				}
 				
 				for (Term conj : atom.getTerms()) {
+					if(conj == null)continue;
 					Node top = new Node(Node.OR);
 					if (conj instanceof Function) {
 						Function conjFunct = (Function) conj;
@@ -397,8 +406,9 @@ public class DagCreatorDatalogNew {
 				
 				Node unionOr = new Node(Node.OR);
 				unionOr.addChild(union);
+				unionOr.setObject(predicateName);
 				hashes.getNse().makeEstimationForNode(unionOr);
-
+				
 				Table predTable = new Table(unionalias, alias);
 				unionOr.addDescendantBaseTable("alias" + alias);
 				tableNodes.add(unionOr);
@@ -407,28 +417,37 @@ public class DagCreatorDatalogNew {
 				//String create="create  virtual table temp.memorywrapperprop" + unionalias + 
 				//		" using unionwrapper(" + partitions +", "+union.getChildren().size();
 				UnionWrapperInfo uwi=new UnionWrapperInfo(unionalias, partitions, union.getChildren().size());
-					
+				
+				List<FilterValue> filterValues=new ArrayList<FilterValue>(union.getChildren().size());
 				for (Node u : union.getChildren()) {
 					if (!(u.getObject() instanceof Table)) {
-						
+						FilterValue next=null;
 						Selection s = (Selection) u.getChildAt(0).getObject();
 						Node table = u.getChildAt(0).getChildAt(0);
 						NonUnaryWhereCondition filter=(NonUnaryWhereCondition)s.getOperands().iterator().next();
 						Table t2 = (Table) table.getObject();
 						if (u.isSubjectFirst()) {
-							uwi.addTableInfo(t2.getName(), 2);
-							uwi.addFilter(Integer.parseInt(filter.getRightOp().toString()));
+							//uwi.addTableInfo(t2.getName(), 2);
+							//uwi.addFilter(Integer.parseInt(filter.getRightOp().toString()));
+							next=new FilterValue(Integer.parseInt(filter.getRightOp().toString()), t2.getName(), 2);
 							//create+=", "+t2.getName()+", "+"2, "+filter.getRightOp().toString();
 							//System.out.println(s.toString() + " from " + t2.getName() + " ");
 						} else {
-							uwi.addTableInfo(t2.getName(), 3);
-							uwi.addFilter(Integer.parseInt(filter.getRightOp().toString()));
+							//uwi.addTableInfo(t2.getName(), 3);
+							//uwi.addFilter(Integer.parseInt(filter.getRightOp().toString()));
+							next=new FilterValue(Integer.parseInt(filter.getRightOp().toString()), t2.getName(), 3);
+	
 							//create+=", "+t2.getName()+", "+"3, "+filter.getRightOp().toString();
 							//System.out.println(s.toString() + " from " + "inv" + t2.getName() + " ");
 						}
+						filterValues.add(next);
 					}
 				}
-					
+				Collections.sort(filterValues);
+				for(FilterValue fv:filterValues) {
+					uwi.addTableInfo(fv.getTable(), fv.getInverse());
+					uwi.addFilter(fv.getValue());
+				}
 					for (Node u : union.getChildren()) {
 						if (u.getObject() instanceof Table) {
 							Table t = (Table) u.getObject();

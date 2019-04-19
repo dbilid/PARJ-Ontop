@@ -99,7 +99,7 @@ public class StatUtils {
 		BufferedReader br = null;
 		Schema fileSchema = null;
 		File f = new File(filename);
-		if (f.exists() && !f.isDirectory()) {
+		/* if (f.exists() && !f.isDirectory()) {
 			br = new BufferedReader(new FileReader(filename));
 			Gson gson = new Gson();
 			fileSchema = gson.fromJson(br, Schema.class);
@@ -108,9 +108,9 @@ public class StatUtils {
 				fileSchema.getTableIndex().put(ri, s.getTableIndex().get(ri));
 			}
 
-		} else {
-			fileSchema = s;
-		}
+		} else {*/
+		fileSchema = s;
+		//}
 		Gson gson = new GsonBuilder().enableComplexMapKeySerialization().create();
 		String jsonStr = gson.toJson(fileSchema);
 

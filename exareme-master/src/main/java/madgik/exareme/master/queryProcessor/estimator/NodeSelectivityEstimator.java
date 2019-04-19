@@ -565,19 +565,36 @@ public class NodeSelectivityEstimator {
 		ni.setResultRel(children.get(0).getNodeInfo().getResultRel());
 		double numOfTuples = 0;
 		double tupleLength = children.get(0).getNodeInfo().getTupleLength();
-		double maxTuples=0;
-		for (Node cn : children) {
-			numOfTuples += cn.getNodeInfo().getNumberOfTuples();
-			if(cn.getNodeInfo().getNumberOfTuples()>maxTuples) {
-				maxTuples=cn.getNodeInfo().getNumberOfTuples();
-				ni.setResultRel(cn.getNodeInfo().getResultRel());
+		double tuplesOfFirstChild=children.get(0).getNodeInfo().getNumberOfTuples();
+		if(n.getObject()!=null && n.getObject() instanceof String) {
+			try {
+			numOfTuples=(double)schema.getUnionCards().get((String)n.getObject());}
+			catch(NullPointerException e) {
+				double maxTuples=0;
+				for (Node cn : children) {
+					numOfTuples += cn.getNodeInfo().getNumberOfTuples();
+					if(cn.getNodeInfo().getNumberOfTuples()>maxTuples) {
+						maxTuples=cn.getNodeInfo().getNumberOfTuples();
+						//ni.setResultRel(cn.getNodeInfo().getResultRel());
+					}
+				}
+
+				numOfTuples=maxTuples;
 			}
 		}
+		else {
+			double maxTuples=0;
+			for (Node cn : children) {
+				numOfTuples += cn.getNodeInfo().getNumberOfTuples();
+				if(cn.getNodeInfo().getNumberOfTuples()>maxTuples) {
+					maxTuples=cn.getNodeInfo().getNumberOfTuples();
+					//ni.setResultRel(cn.getNodeInfo().getResultRel());
+				}
+			}
+
+			numOfTuples=maxTuples;
+		}
 		
-		
-		// TODO: fix nodeInfo
-		double tuplesOfFirstChild=children.get(0).getNodeInfo().getNumberOfTuples();
-		numOfTuples=maxTuples;
 		double multiplicity=numOfTuples/tuplesOfFirstChild;
 		
 		ni.setNumberOfTuples(numOfTuples);
@@ -817,6 +834,8 @@ public class NodeSelectivityEstimator {
 		return ni;
 	}
 
-	
+	public Long getCardinalityForUnion(String predicate) {
+		return this.schema.getUnionCards().get(predicate);
+	}
 
 }

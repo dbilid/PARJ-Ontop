@@ -464,6 +464,10 @@ public class QuestUnfolder {
         return objectPropertiesMapped;
     }
 
+	public List<CQIE> getUnionMappings() {
+		return unfolder.getUnionMappings();
+	}
+
 
 
 

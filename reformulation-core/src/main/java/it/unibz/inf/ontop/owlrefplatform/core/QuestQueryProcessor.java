@@ -397,4 +397,8 @@ public class QuestQueryProcessor {
 			throw ex;
 		}
 	}
+	
+	public List<CQIE> getUnionMappings(){
+		return unfolder.getUnionMappings();
+	}
 }

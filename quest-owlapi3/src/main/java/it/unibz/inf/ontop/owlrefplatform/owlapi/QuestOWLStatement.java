@@ -1,5 +1,6 @@
 package it.unibz.inf.ontop.owlrefplatform.owlapi;
 
+import it.unibz.inf.ontop.model.CQIE;
 import it.unibz.inf.ontop.model.DatalogProgram;
 
 /*
@@ -402,5 +403,9 @@ public class QuestOWLStatement implements AutoCloseable {
 	// Davide>Benchmark
 	public OntopBenchmark getBenchmarkObject(){
 	    return st.getBenchmarkObject();
+	}
+
+	public List<CQIE> getUnionMappings() {
+		return st.questInstance.getEngine().getUnionMappings();
 	}
 }

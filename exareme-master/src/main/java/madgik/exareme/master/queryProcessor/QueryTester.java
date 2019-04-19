@@ -4,7 +4,6 @@ import it.unibz.inf.ontop.io.ModelIOManager;
 import it.unibz.inf.ontop.model.CQIE;
 import it.unibz.inf.ontop.model.DatalogProgram;
 import it.unibz.inf.ontop.model.OBDADataFactory;
-import it.unibz.inf.ontop.model.OBDADataSource;
 import it.unibz.inf.ontop.model.OBDAModel;
 import it.unibz.inf.ontop.model.impl.OBDADataFactoryImpl;
 import it.unibz.inf.ontop.owlrefplatform.core.QuestConstants;
@@ -15,21 +14,17 @@ import it.unibz.inf.ontop.owlrefplatform.owlapi.QuestOWLConnection;
 import it.unibz.inf.ontop.owlrefplatform.owlapi.QuestOWLFactory;
 import it.unibz.inf.ontop.owlrefplatform.owlapi.QuestOWLResultSet;
 import it.unibz.inf.ontop.owlrefplatform.owlapi.QuestOWLStatement;
-import it.unibz.inf.ontop.r2rml.R2RMLReader;
 import madgik.exareme.master.db.DBManager;
 import madgik.exareme.master.db.FinalUnionExecutor;
 import madgik.exareme.master.db.ResultBuffer;
 import madgik.exareme.master.db.SQLiteLocalExecutor;
-import madgik.exareme.master.queryProcessor.decomposer.dag.Node;
+import madgik.exareme.master.queryProcessor.analyzer.fanalyzer.SPARQLAnalyzer;
+import madgik.exareme.master.queryProcessor.analyzer.stat.StatUtils;
+import madgik.exareme.master.queryProcessor.decomposer.DecomposerUtils;
 import madgik.exareme.master.queryProcessor.decomposer.dag.NodeHashValues;
-import madgik.exareme.master.queryProcessor.decomposer.query.Column;
-import madgik.exareme.master.queryProcessor.decomposer.query.NonUnaryWhereCondition;
-import madgik.exareme.master.queryProcessor.decomposer.query.Output;
-import madgik.exareme.master.queryProcessor.decomposer.query.SQLColumn;
 import madgik.exareme.master.queryProcessor.decomposer.query.SQLQuery;
-import madgik.exareme.master.queryProcessor.decomposer.query.Table;
 import madgik.exareme.master.queryProcessor.estimator.NodeSelectivityEstimator;
-import madgik.exareme.master.queryProcessor.sparql.DagCreator;
+import madgik.exareme.master.queryProcessor.estimator.db.Schema;
 import madgik.exareme.master.queryProcessor.sparql.DagCreatorDatalogNew;
 import madgik.exareme.master.queryProcessor.sparql.IdFetcher;
 import madgik.exareme.master.queryProcessor.sparql.UnionWrapperInfo;
@@ -61,13 +56,10 @@ import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.OWLException;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
-import org.semanticweb.owlapi.reasoner.SimpleConfiguration;
-
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 
 public class QueryTester {
 
@@ -84,21 +76,13 @@ public class QueryTester {
 	private boolean run_sql;
 	private String outputfolder;
 	private IdFetcher fetcher;
-	
+
 	private StringBuffer obdaFile;
 	private String dir;
-	private int partitions=1;
-	boolean print=false;
-	boolean aggregator=false;
-	
-	// For R2RML
-	private String db_creds_file;
-	private String db_name;
-	private String dbuser;
-	private String dbpassword;
-	private String jdbc_url;
-	private String jdbc_driver;
-	
+	private int partitions = 1;
+	boolean print = false;
+	boolean aggregator = false;
+
 	private Connection single;
 	// Timing identifiers and strings.
 	private final String TOTAL = "Total";
@@ -109,9 +93,9 @@ public class QueryTester {
 
 	private String histograms;
 	private DBManager m;
-	private boolean run=true;
-	
-
+	private boolean run = true;
+	private NodeSelectivityEstimator nse;
+	private NodeHashValues hashes;
 
 	public static void main(String[] args) throws IOException {
 
@@ -135,9 +119,6 @@ public class QueryTester {
 			System.out.println(" histograms     :  paths to json histogram file\n");
 			System.exit(0);
 		}
-		
-		
-		
 
 		// args counter. NB! Keep the args in order, due to i++.
 		int i = 0;
@@ -162,27 +143,24 @@ public class QueryTester {
 
 		String owlfile = args[i++].trim();
 		String obdafile = args[i++].trim();
-		
+
 		String constraints_file = args[i++].trim();
 		String tmap_conf_file = args[i++].trim();
 		// String[] query_files = Arrays.copyOfRange(args, i, args.length);
 		String[] query_files = readFilesFromDir(args[i++]);
 		String histograms = args[i++].trim();
-		int parts=Integer.parseInt(args[i++]);
+		int parts = Integer.parseInt(args[i++]);
 		// for(int test_no = 0; test_no < 5; test_no++){
 		QueryTester tester;
-		
 
 		/*
-		 * tester = new QueryTester (owlfile, obdafile, constraints_file,
-		 * is_r2rml, query_files, run_sql, timeout, output + "/" + test_no +
-		 * "KEYS_TMAP", db_creds_file, tmap_conf_file); tester.runQueries();
-		 * Thread.sleep(7200000);
+		 * tester = new QueryTester (owlfile, obdafile, constraints_file, is_r2rml,
+		 * query_files, run_sql, timeout, output + "/" + test_no + "KEYS_TMAP",
+		 * db_creds_file, tmap_conf_file); tester.runQueries(); Thread.sleep(7200000);
 		 * 
-		 * tester = new QueryTester (owlfile, obdafile, constraints_file,
-		 * is_r2rml, query_files, run_sql, timeout, (output + "/" + test_no +
-		 * "KEYS"), db_creds_file, null); tester.runQueries();
-		 * Thread.sleep(7200000);
+		 * tester = new QueryTester (owlfile, obdafile, constraints_file, is_r2rml,
+		 * query_files, run_sql, timeout, (output + "/" + test_no + "KEYS"),
+		 * db_creds_file, null); tester.runQueries(); Thread.sleep(7200000);
 		 */
 		tester = new QueryTester(owlfile, obdafile, constraints_file, query_files, run_sql, timeout,
 				output + "/" + "666" + "NOTUNING", null, histograms, parts);
@@ -192,8 +170,6 @@ public class QueryTester {
 		// }
 
 	}
-
-	
 
 	private static String[] readFilesFromDir(String string) throws IOException {
 		File folder = new File(string);
@@ -209,15 +185,14 @@ public class QueryTester {
 	}
 
 	/**
-	 * db_creds_file is needed for r2rml. db_creds_file must be a valid file
-	 * name String if is_r2rml is true. for .obda the db_creds_file is
-	 * disregarded and may be null
+	 * db_creds_file is needed for r2rml. db_creds_file must be a valid file name
+	 * String if is_r2rml is true. for .obda the db_creds_file is disregarded and
+	 * may be null
 	 * 
 	 * @param histograms
 	 **/
-	public QueryTester(String owlfile, String obdafile, String constraints_file, String[] query_files,
-			boolean run_sql, int timeout, String output, String tmap_conf_file,
-			String histograms, int parts) {
+	public QueryTester(String owlfile, String obdafile, String constraints_file, String[] query_files, boolean run_sql,
+			int timeout, String output, String tmap_conf_file, String histograms, int parts) {
 		this.owlfile = owlfile;
 		this.query_files = query_files;
 		this.run_sql = run_sql;
@@ -226,58 +201,31 @@ public class QueryTester {
 		this.constraints_file = constraints_file;
 		this.tmap_conf_file = tmap_conf_file;
 		this.histograms = histograms;
-		this.dir=histograms.replace("histograms.json", "");
-		this.partitions=parts;
+		this.dir = histograms.replace("histograms.json", "");
+		this.partitions = parts;
 	}
 
 	/**
-	 * Returns everything after the last space, and except the end of line
-	 * Assumes input is a single line from an obda db cred spec
+	 * Returns everything after the last space, and except the end of line Assumes
+	 * input is a single line from an obda db cred spec
 	 **/
 	private String get_stuff_after_space(String line) {
 		return (line.split("\\s"))[1];
 	}
 
-	/**
-	 * Reads database credentials in the .obda format used by ontop
-	 **/
-	private void read_db_credentials(String db_creds_file) {
-		try {
-			BufferedReader reader = new BufferedReader(new FileReader(db_creds_file));
-			String line = null;
-			while ((line = reader.readLine()) != null) {
-				if (line.indexOf("connectionUrl") == 0)
-					this.jdbc_url = this.get_stuff_after_space(line);
-				else if (line.indexOf("username") == 0)
-					this.dbuser = this.get_stuff_after_space(line);
-				else if (line.indexOf("password") == 0)
-					this.dbpassword = this.get_stuff_after_space(line);
-				else if (line.indexOf("driverClass") == 0)
-					this.jdbc_driver = this.get_stuff_after_space(line);
-			}
-		} catch (IOException e) {
-			System.out.println("Error when reading db credentials file \"" + db_creds_file + "\"");
-			e.printStackTrace();
-		}
-	}
-
 	public void initQuest(String owlfile) throws Exception {
 		// Loading the OWL ontology from the file as with normal OWLReasoners
-		
-		
+
 		m = new DBManager();
-		//warmUpDBManager(partitions, dir, m);
-		
+		// warmUpDBManager(partitions, dir, m);
+
 		single = m.getConnection(dir, partitions);
-		
-			if (run) {
-			
-			
-			
-			
+
+		if (run) {
+
 			System.out.println("loading data in memory...");
 			long start = System.currentTimeMillis();
-			Statement st2= single.createStatement();
+			Statement st2 = single.createStatement();
 			String load = "create virtual table tmptable using memorywrapper(";
 			load += String.valueOf(partitions);
 			load += " -1, -1)";
@@ -285,16 +233,14 @@ public class QueryTester {
 			st2.close();
 
 			System.out.println("data loaded" + (System.currentTimeMillis() - start) + " ms");
-			
+
 			createVirtualTables(single, partitions);
 			warmUpDBManager(partitions, dir, m);
-			
+
 		}
-		
+
 		createObdaFile();
-		
-		
-		
+
 		myLog("Loading ontology");
 		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
 		OWLOntology ontology = manager.loadOntologyFromOntologyDocument((new File(owlfile)));
@@ -304,14 +250,12 @@ public class QueryTester {
 
 		OBDAModel obdaModel;
 		OBDADataFactory fac = OBDADataFactoryImpl.getInstance();
-		
 
-			myLog("Loading obda file");
-			obdaModel = fac.getOBDAModel();
-			ModelIOManager ioManager = new ModelIOManager(obdaModel);
-			ioManager.load(new ByteArrayInputStream(obdaFile.toString().getBytes()));
-			//ioManager.load(obdafile);
-		
+		myLog("Loading obda file");
+		obdaModel = fac.getOBDAModel();
+		ModelIOManager ioManager = new ModelIOManager(obdaModel);
+		ioManager.load(new ByteArrayInputStream(obdaFile.toString().getBytes()));
+		// ioManager.load(obdafile);
 
 		myDone();
 
@@ -323,7 +267,7 @@ public class QueryTester {
 		p.setCurrentValueOf(QuestPreferences.OBTAIN_FULL_METADATA, QuestConstants.FALSE);
 		p.setCurrentValueOf(QuestPreferences.SQL_GENERATE_REPLACE, QuestConstants.FALSE);
 		p.setCurrentValueOf(QuestPreferences.REWRITE, QuestConstants.TRUE);
-		//p.setCurrentValueOf(QuestPreferences.DBTYPE, QuestConstants.PANTELIS);
+		// p.setCurrentValueOf(QuestPreferences.DBTYPE, QuestConstants.PANTELIS);
 		// p.setCurrentValueOf(QuestPreferences.DISTINCT_RESULTSET,
 		// QuestConstants.TRUE);
 		p.setCurrentValueOf(QuestPreferences.REFORMULATION_TECHNIQUE, QuestConstants.TW);
@@ -346,6 +290,7 @@ public class QueryTester {
 		 * QuestOWLFactory factory = configBuilder.
 		 * factory.setOBDAController(obdaModel); factory.setPreferenceHolder(p);
 		 */
+		// List<CQIE> rules=reasoner.getQuestInstance().getUnfolderRules();
 		if (!this.constraints_file.equals("0")) {
 			myLog("Setting user constraints");
 		}
@@ -364,7 +309,6 @@ public class QueryTester {
 		// the statement we query.
 		myLog("Getting connection");
 		conn = reasoner.getConnection();
-		
 
 		myDone();
 	}
@@ -385,14 +329,13 @@ public class QueryTester {
 
 	}
 
-
 	private void createObdaFile() throws SQLException {
-		obdaFile=new StringBuffer();
+		obdaFile = new StringBuffer();
 		obdaFile.append("[SourceDeclaration]");
 		obdaFile.append("\n");
 		obdaFile.append("sourceUri\tsparql");
 		obdaFile.append("\n");
-		obdaFile.append("connectionUrl\tjdbc:fedadp:"+dir);
+		obdaFile.append("connectionUrl\tjdbc:fedadp:" + dir);
 		obdaFile.append("\n");
 		obdaFile.append("username\ttest");
 		obdaFile.append("\n");
@@ -400,38 +343,37 @@ public class QueryTester {
 		obdaFile.append("\n");
 		obdaFile.append("driverClass\tmadgik.exareme.jdbc.embedded.AdpDriver");
 		obdaFile.append("\n");
-		
+
 		obdaFile.append("\n");
 		obdaFile.append("[MappingDeclaration] @collection [[");
 		obdaFile.append("\n");
-		
+
 		fetcher = new IdFetcher(single);
 		fetcher.loadProperties();
-		
-		Statement st=single.createStatement();
-		int mappingId=0;
-		for(String property:fetcher.getProperties()){
-			if(property.equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")){
-				String propNo="prop"+fetcher.getIdForProperty(property);
-				StringBuffer getTypes=new StringBuffer();
-				String del="";
-				String distinct="";
-					distinct=" distinct ";
-				
-					getTypes.append(del);
-					getTypes.append(" select ");
-					getTypes.append(distinct);
-					getTypes.append("o from ");
-					getTypes.append(propNo);
-					
-				
-				ResultSet rs2=st.executeQuery(getTypes.toString());
-				while(rs2.next()){
-					int o=rs2.getInt(1);
+
+		Statement st = single.createStatement();
+		int mappingId = 0;
+		for (String property : fetcher.getProperties()) {
+			if (property.equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")) {
+				String propNo = "prop" + fetcher.getIdForProperty(property);
+				StringBuffer getTypes = new StringBuffer();
+				String del = "";
+				String distinct = "";
+				distinct = " distinct ";
+
+				getTypes.append(del);
+				getTypes.append(" select ");
+				getTypes.append(distinct);
+				getTypes.append("o from ");
+				getTypes.append(propNo);
+
+				ResultSet rs2 = st.executeQuery(getTypes.toString());
+				while (rs2.next()) {
+					int o = rs2.getInt(1);
 					obdaFile.append("mappingId\tmapp");
 					obdaFile.append(mappingId);
 					mappingId++;
-					String type=fetcher.getUriForId(o);
+					String type = fetcher.getUriForId(o);
 					obdaFile.append("\n");
 					obdaFile.append("target\t");
 					obdaFile.append("<{s}> <");
@@ -445,14 +387,14 @@ public class QueryTester {
 					obdaFile.append(" where o='");
 					obdaFile.append(type);
 					obdaFile.append("'");
-					
+
 					obdaFile.append("\n");
-					obdaFile.append("\n");	
+					obdaFile.append("\n");
 				}
 				rs2.close();
 				continue;
 			}
-			
+
 			obdaFile.append("mappingId\tmapp");
 			obdaFile.append(mappingId);
 			mappingId++;
@@ -465,26 +407,63 @@ public class QueryTester {
 			obdaFile.append("select s, o from prop");
 			obdaFile.append(fetcher.getIdForProperty(property));
 			obdaFile.append("\n");
-			obdaFile.append("\n");	
-			
+			obdaFile.append("\n");
+
 		}
 		st.close();
 		obdaFile.append("]]");
-		
-		
+
 	}
-
-
 
 	public void runQueries() {
 		try {
 			initQuest(owlfile);
 			if (conn == null) {
-				
-					System.err.println("Could not load connection with obdafile ");
+
+				System.err.println("Could not load connection with obdafile ");
 
 				System.exit(0);
 			}
+
+			loadStatistics();
+			// readstats
+			try {
+				nse = new NodeSelectivityEstimator(dir + "histograms.json");
+			} catch (java.io.FileNotFoundException ex) {
+				System.out.println("Database statistics are missing. Analyzing database (this may take some time...)");
+				SPARQLAnalyzer a = new SPARQLAnalyzer(m, dir, DecomposerUtils.CARDINALITY_THREADS,
+						fetcher.getPropertyCount());
+				try {
+
+					Schema stats = a.analyze();
+					StatUtils.addSchemaToFile(dir + "histograms.json", stats);
+					nse = new NodeSelectivityEstimator(dir + "histograms.json");
+					hashes = new NodeHashValues();
+					hashes.setSelectivityEstimator(nse);
+					QuestOWLStatement st = conn.createStatement();
+					Map<String, Long> unionCards=new HashMap<String, Long>();
+					for(CQIE union:st.getUnionMappings()) {
+						long card=runCQ(union, false, false);
+						unionCards.put(union.getHead().getFunctionSymbol().getName(), card);
+						hashes.clear();
+					}
+					stats.setUnionCards(unionCards);
+					StatUtils.addSchemaToFile(dir + "histograms.json", stats);
+					nse = new NodeSelectivityEstimator(dir + "histograms.json");
+					hashes = new NodeHashValues();
+					hashes.setSelectivityEstimator(nse);
+					st.close();
+
+					
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+
+			}
+			hashes = new NodeHashValues();
+			hashes.setSelectivityEstimator(nse);
+
 			// Run all queries
 			for (String queryfile : query_files) {
 				runQuery(queryfile);
@@ -504,6 +483,11 @@ public class QueryTester {
 		}
 	}
 
+	private void loadStatistics() {
+		// TODO Auto-generated method stub
+
+	}
+
 	private void runQuery(String queryfile) {
 		try {
 			Timer timer = new Timer();
@@ -514,12 +498,8 @@ public class QueryTester {
 			QuestOWLStatement st = conn.createStatement();
 			st.setFetchSize(1000);
 
-			boolean mysql = reasoner.getQuestInstance().getMetaData().getDriverName().toLowerCase().contains("mysql");
-			if (mysql) {
-				st.setFetchSize(Integer.MIN_VALUE);
-			}
 			getPantelisDatalog(st, query, outputfolder + "/" + queryfile + ".sql", timer);
-			//writeUnfoldedSQL(st, query, outputfolder + "/" + queryfile + ".sql", timer);
+			// writeUnfoldedSQL(st, query, outputfolder + "/" + queryfile + ".sql", timer);
 
 			if (this.run_sql) {
 				setQueryTimeout(st, timeout);
@@ -556,83 +536,83 @@ public class QueryTester {
 		logOut(timer, READQUERY);
 		return query;
 	}
-	
+
 	private void getPantelisDatalog(QuestOWLStatement st, String query, String file, Timer timer) {
 		byte[] sql = null;
 		logIn(timer, UNFOLDING);
 		try {
-			NodeSelectivityEstimator nse = new NodeSelectivityEstimator(
-					dir + "histograms.json");
-			NodeHashValues hashes = new NodeHashValues();
-			hashes.setSelectivityEstimator(nse);
+			hashes.clear();
 			DatalogProgram result = st.getUnfoldingForPantelis(query);
-			/*DagCreatorDatalog creator = new DagCreatorDatalog(result, partitions, hashes, fetcher);
-
-			Node root = creator.getRootNode();
-			
-			DagExpander expander = new DagExpander(root, hashes);
-			expander.expand();
-			// System.out.println(root.dotPrint(new HashSet<Node>()));
-			Memo memo = new Memo();
-
-			expander.getBestPlanCentralized(root, Double.MAX_VALUE, memo);
-			SinlgePlanDFLGenerator dsql = new SinlgePlanDFLGenerator(root, memo);
-			// dsql.setN2a(n2a);
-			List<SQLQuery> qList = dsql.generate();
-			for(int i =0;i<qList.size()-1;i++){
-				System.out.println(qList.get(i).toSQL());
+			/*
+			 * DagCreatorDatalog creator = new DagCreatorDatalog(result, partitions, hashes,
+			 * fetcher);
+			 * 
+			 * Node root = creator.getRootNode();
+			 * 
+			 * DagExpander expander = new DagExpander(root, hashes); expander.expand(); //
+			 * System.out.println(root.dotPrint(new HashSet<Node>())); Memo memo = new
+			 * Memo();
+			 * 
+			 * expander.getBestPlanCentralized(root, Double.MAX_VALUE, memo);
+			 * SinlgePlanDFLGenerator dsql = new SinlgePlanDFLGenerator(root, memo); //
+			 * dsql.setN2a(n2a); List<SQLQuery> qList = dsql.generate(); for(int i
+			 * =0;i<qList.size()-1;i++){ System.out.println(qList.get(i).toSQL()); }
+			 * qList.get(qList.size()-1).computeTableToSplit(4);
+			 * System.out.println(qList.get(qList.size()-1).getSqlForPartition(2));
+			 */
+			boolean lookups = false;
+			for (CQIE cq : result.getRules()) {
+				runCQ(cq, print, lookups);
 			}
-			qList.get(qList.size()-1).computeTableToSplit(4);
-			System.out.println(qList.get(qList.size()-1).getSqlForPartition(2));*/
-			for(CQIE cq:result.getRules()){
+			// System.out.println(root.count(0));
+
+			System.out.println("OK");
+
+		} catch (Exception e) {
+			System.err.println("Error unfolding to SQL. ");
+			e.printStackTrace();
+		}
+
+	}
+
+	private long runCQ(CQIE cq, boolean printResults, boolean tupleConstruction) {
+		long results=0;
+		try {
 			DagCreatorDatalogNew creator = new DagCreatorDatalogNew(cq, partitions, hashes, fetcher);
 			creator.setPartitions(partitions);
 			SQLQuery result2 = creator.getRootNode();
 			result2.invertColumns();
 			result2.computeTableToSplit(partitions);
 			List<String> extraCreates = result2.computeExtraCreates(partitions);
-			List<UnionWrapperInfo> unions=result2.getUnions();
-			//System.out.println(extraCreates);
-			//System.out.println(result2.getSqlForPartition(0));
-			//boolean run=true;
+			List<UnionWrapperInfo> unions = result2.getUnions();
+			// System.out.println(extraCreates);
+			// System.out.println(result2.getSqlForPartition(0));
+			// boolean run=true;
 			long start = System.currentTimeMillis();
-			
+
 			// add dictionary lookups
-			/*int out = 1;
-			Map<Column, SQLColumn> toChange = new HashMap<Column, SQLColumn>();
+			/*
+			 * int out = 1; Map<Column, SQLColumn> toChange = new HashMap<Column,
+			 * SQLColumn>();
+			 * 
+			 * for (Column outCol : result2.getAllOutputColumns()) { Table dict=new
+			 * Table(-1, -1); dict.setDictionary(out); result2.addInputTable(dict);
+			 * NonUnaryWhereCondition dictJoin = new NonUnaryWhereCondition(outCol.clone(),
+			 * new SQLColumn("d"+out, "id"), "=");
+			 * result2.addBinaryWhereCondition(dictJoin); toChange.put(outCol.clone(), new
+			 * SQLColumn("d"+out, "uri")); out++; }
+			 * 
+			 * for (Output o : result2.getOutputs()) { for (Column c : toChange.keySet()) {
+			 * if(o.getObject() instanceof Column){ Column c2=(Column)o.getObject();
+			 * if(c2.equals(c)){ o.setObject(toChange.get(c)); } } else{
+			 * //System.err.println("projection not column"); }
+			 * //o.getObject().changeColumn(c, toChange.get(c)); } }
+			 */
 
-			for (Column outCol : result2.getAllOutputColumns()) {
-				Table dict=new Table(-1, -1);
-				dict.setDictionary(out);
-				result2.addInputTable(dict);
-				NonUnaryWhereCondition dictJoin = new NonUnaryWhereCondition(outCol.clone(),
-						new SQLColumn("d"+out, "id"), "=");
-				result2.addBinaryWhereCondition(dictJoin);
-				toChange.put(outCol.clone(), new SQLColumn("d"+out, "uri"));
-				out++;
-			}
-
-			for (Output o : result2.getOutputs()) {
-				for (Column c : toChange.keySet()) {
-					if(o.getObject() instanceof Column){
-						Column c2=(Column)o.getObject();
-						if(c2.equals(c)){
-							o.setObject(toChange.get(c));
-						}
-					}
-					else{
-						//System.err.println("projection not column");
-					}
-					//o.getObject().changeColumn(c, toChange.get(c));
-				}
-			}*/
-			
 			if (run) {
-				
-				
-				
+
 				ExecutorService es = Executors.newFixedThreadPool(partitions + 1);
-				
+
 				single.setAutoCommit(false);
 				// start=System.currentTimeMillis();
 				// ExecutorService es =
@@ -649,11 +629,10 @@ public class QueryTester {
 				for (int i = 0; i < partitions; i++) {
 					// String sql=result.getSqlForPartition(i);
 					cons[i] = m.getConnection(dir, partitions);
-					boolean lookups=false;
+					
 					// createVirtualTables(cons[i], partitions);
-					SQLiteLocalExecutor ex = new SQLiteLocalExecutor(result2, cons[i],
-							aggregator, finishedQueries, i,
-							print, lookups, extraCreates, unions);
+					SQLiteLocalExecutor ex = new SQLiteLocalExecutor(result2, cons[i], aggregator, finishedQueries, i,
+							printResults, tupleConstruction, extraCreates, unions);
 
 					ex.setGlobalBuffer(globalBuffer);
 					// executors.add(ex);
@@ -661,16 +640,15 @@ public class QueryTester {
 				}
 
 				if (aggregator) {
-					FinalUnionExecutor ex = new FinalUnionExecutor(globalBuffer, null, partitions,
-							print);
+					FinalUnionExecutor ex = new FinalUnionExecutor(globalBuffer, null, partitions, printResults);
 					// es.execute(ex);
 					futures.add(es.submit(ex));
 				}
 				// System.out.println(System.currentTimeMillis() -
 				// start);
 				/*
-				 * for (SQLiteLocalExecutor exec : executors) {
-				 * es.execute(exec); } es.shutdown();
+				 * for (SQLiteLocalExecutor exec : executors) { es.execute(exec); }
+				 * es.shutdown();
 				 */
 				try {
 					for (Future<?> future : futures) {
@@ -685,22 +663,18 @@ public class QueryTester {
 					cons[i].close();
 				}
 				if (!aggregator) {
+					results=globalBuffer.getFinished();
 					System.out.println("total results:" + globalBuffer.getFinished());
 				}
 			} else {
 				System.out.println(extraCreates);
 				System.out.println(result2.getSqlForPartition(0));
 			}
-			}
-			// System.out.println(root.count(0));
-
-			System.out.println("OK");
-			
 		} catch (Exception e) {
-			System.err.println("Error unfolding to SQL. ");
+			System.err.println("Error running query. ");
 			e.printStackTrace();
 		}
-		
+		return results;
 	}
 
 	private void writeUnfoldedSQL(QuestOWLStatement st, String query, String file, Timer timer) {
@@ -708,13 +682,13 @@ public class QueryTester {
 		logIn(timer, UNFOLDING);
 		try {
 			String result = st.getUnfolding(query);
-			//String delimiter = "";
+			// String delimiter = "";
 			StringBuffer q = new StringBuffer();
-			//for (int i = 0; i < result.size(); i++) {
-				//q.append(delimiter);
-				q.append(result);
-				//delimiter = "\n";
-			//}
+			// for (int i = 0; i < result.size(); i++) {
+			// q.append(delimiter);
+			q.append(result);
+			// delimiter = "\n";
+			// }
 			sql = q.toString().getBytes();
 		} catch (Exception e) {
 			System.err.println("Error unfolding to SQL. ");
@@ -878,7 +852,7 @@ public class QueryTester {
 	private static void myFailed() {
 		System.out.println("FAILED!");
 	}
-	
+
 	private static void createVirtualTables(Connection c, int partitions) throws SQLException {
 		Statement st = c.createStatement();
 		ResultSet rs = st.executeQuery("select id from properties");
@@ -886,7 +860,7 @@ public class QueryTester {
 		while (rs.next()) {
 			int propNo = rs.getInt(1);
 			// for(int i=0;i<partitions;i++){
-			 
+
 			// System.out.println("create virtual table"+ propNo);
 			st2.executeUpdate("create virtual table if not exists memorywrapperprop" + propNo + " using memorywrapper("
 					+ partitions + ", " + propNo + ", 0)");

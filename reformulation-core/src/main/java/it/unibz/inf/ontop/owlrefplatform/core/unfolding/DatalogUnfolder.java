@@ -55,27 +55,27 @@ public class DatalogUnfolder {
 	private final Map<Predicate, List<CQIE>> ruleIndex = new LinkedHashMap<>();
 
 	/***
-	 * Leaf predicates are those that do not appear in the head of any rule. If
-	 * a predicate is a leaf predicate, it should not be unfolded, they indicate
-	 * stop points to get partial evaluations.
+	 * Leaf predicates are those that do not appear in the head of any rule. If a
+	 * predicate is a leaf predicate, it should not be unfolded, they indicate stop
+	 * points to get partial evaluations.
 	 * <p>
-	 * Any atom that is not a leaf, and that cannot be unified with a rule
-	 * (either cause of lack of MGU, or because of a rule for the predicate of
-	 * the atom) is logically empty w.r.t. to the program.
+	 * Any atom that is not a leaf, and that cannot be unified with a rule (either
+	 * cause of lack of MGU, or because of a rule for the predicate of the atom) is
+	 * logically empty w.r.t. to the program.
 	 */
 	private final Set<Predicate> extensionalPredicates = new HashSet<>();
 
 	// LeftJoinUnfoldingTest only
-	
+
 	public DatalogUnfolder(List<CQIE> unfoldingProgram) {
 		this(unfoldingProgram, HashMultimap.<Predicate, List<Integer>>create());
 	}
 
-	// QuestUnfilder only 
-	
+	// QuestUnfilder only
+
 	public DatalogUnfolder(List<CQIE> unfoldingProgram, Multimap<Predicate, List<Integer>> primaryKeys) {
 		this.primaryKeys = primaryKeys;
-		
+
 		// Creating a local index for the rules according to their predicate
 		for (CQIE mappingrule : unfoldingProgram) {
 			Function head = mappingrule.getHead();
@@ -87,10 +87,10 @@ public class DatalogUnfolder {
 			}
 			rules.add(mappingrule);
 
-			
 			// Collecting the predicates that appear in the body of rules
-			// (first in extensionalPredicates, then we will remove all defined (intensional)
-			for (Function atom : mappingrule.getBody()) 
+			// (first in extensionalPredicates, then we will remove all defined
+			// (intensional)
+			for (Function atom : mappingrule.getBody())
 				collectPredicates(extensionalPredicates, atom);
 		}
 
@@ -101,28 +101,27 @@ public class DatalogUnfolder {
 
 	private final void collectPredicates(Set<Predicate> predicates, Function atom) {
 		if (atom.isAlgebraFunction()) {
-			for (Term innerTerm : atom.getTerms()) 
+			for (Term innerTerm : atom.getTerms())
 				if (innerTerm instanceof Function)
 					collectPredicates(predicates, (Function) innerTerm);
-		} 
-		else if (!(atom.isOperation())) {
+		} else if (!(atom.isOperation())) {
 			Predicate pred = atom.getFunctionSymbol();
 			predicates.add(pred);
 		}
 	}
 
 	/***
-	 * Given a query q and the {@link #unfoldingProgram}, this method will try
-	 * to flatten the query as much as possible by applying resolution steps
+	 * Given a query q and the {@link #unfoldingProgram}, this method will try to
+	 * flatten the query as much as possible by applying resolution steps
 	 * exhaustively to every atom in the query against the rules in
-	 * 'unfoldingProgram'. This will is exactly to computing a partial
-	 * evaluation of q w.r.t. unfolding program, that is, a specialized version
-	 * of q w.r.t. to unfolding program that requires less steps to execute.
+	 * 'unfoldingProgram'. This will is exactly to computing a partial evaluation of
+	 * q w.r.t. unfolding program, that is, a specialized version of q w.r.t. to
+	 * unfolding program that requires less steps to execute.
 	 * <p>
-	 * This is used to translate ontological queries to database queries in the
-	 * when the unfolding program is a set of mapppings, and also to flatten the
-	 * Datalog queries that are produced by the
-	 * {@link SparqlAlgebraToDatalogTranslator} and in some other places.
+	 * This is used to translate ontological queries to database queries in the when
+	 * the unfolding program is a set of mapppings, and also to flatten the Datalog
+	 * queries that are produced by the {@link SparqlAlgebraToDatalogTranslator} and
+	 * in some other places.
 	 * 
 	 * <p>
 	 * Example: matching rule the unfolding program.
@@ -149,55 +148,53 @@ public class DatalogUnfolder {
 	 * 
 	 * 
 	 * <p>
-	 * The strategy of this unfolding is simple, we cycle through all the
-	 * queries and attempt to resolve atom 0 in the body against the rules in
-	 * unfolding program. The resolution engine will generate 1 or more CQs as
-	 * result. The original atom is removed, and the results are appended to the
-	 * end of each query (hence its always safe to unfold atom 0). The new
-	 * queries are kept for a next cycle. We stop when no new queries are
-	 * produced.
+	 * The strategy of this unfolding is simple, we cycle through all the queries
+	 * and attempt to resolve atom 0 in the body against the rules in unfolding
+	 * program. The resolution engine will generate 1 or more CQs as result. The
+	 * original atom is removed, and the results are appended to the end of each
+	 * query (hence its always safe to unfold atom 0). The new queries are kept for
+	 * a next cycle. We stop when no new queries are produced.
 	 * <p>
 	 * The right side of left joins will never be touched.
 	 * <p>
-	 * Currently the method also is aware of functional dependencies (Primary
-	 * keys) and will produce queries in which redundant joins w.r.t. to these
-	 * are avoided.
+	 * Currently the method also is aware of functional dependencies (Primary keys)
+	 * and will produce queries in which redundant joins w.r.t. to these are
+	 * avoided.
 	 * 
 	 * @param inputquery
 	 * @return
 	 */
 
-
 	/***
-	 * Generates a partial evaluation of the rules in <b>inputquery</b> with respect to the
-	 * with respect to the program given when this unfolder was initialized. The goal for
-	 * this partial evaluation is the predicate <b>ans1</b>
+	 * Generates a partial evaluation of the rules in <b>inputquery</b> with respect
+	 * to the with respect to the program given when this unfolder was initialized.
+	 * The goal for this partial evaluation is the predicate <b>ans1</b>
 	 * 
 	 */
 	public DatalogProgram unfold(DatalogProgram inputquery) {
 
 		List<CQIE> workingSet = new LinkedList<>();
-		for (CQIE query : inputquery.getRules()) 
+		for (CQIE query : inputquery.getRules())
 			workingSet.add(query.clone());
-		
-		//remove duplicate answers
-		for (CQIE q : workingSet){
-			Set<Function> existingAtoms=new HashSet<Function>();
-			System.out.println("initial size:::"+q.getBody().size());
-			for(int i=0;i<q.getBody().size();i++){
-				if(!existingAtoms.add(q.getBody().get(i))){
+
+		// remove duplicate answers
+		for (CQIE q : workingSet) {
+			Set<Function> existingAtoms = new HashSet<Function>();
+			System.out.println("initial size:::" + q.getBody().size());
+			for (int i = 0; i < q.getBody().size(); i++) {
+				if (!existingAtoms.add(q.getBody().get(i))) {
 					q.getBody().remove(i);
 					i--;
 				}
 			}
-			System.out.println("final size:::"+q.getBody().size());
+			System.out.println("final size:::" + q.getBody().size());
 		}
-				
+
 		for (CQIE query : workingSet)
 			EQNormalizer.enforceEqualities(query);
-		
+
 		getResultForPantelis(workingSet);
-			
+
 		DatalogProgram result = termFactory.getDatalogProgram(inputquery.getQueryModifiers());
 		result.appendRule(workingSet);
 
@@ -355,7 +352,8 @@ public class DatalogUnfolder {
 	//
 	// if (mgu == null)
 	// throw new RuntimeException(
-	// "Unexcpected case found while performing JOIN elimination. Contact the authors for debugging.");
+	// "Unexcpected case found while performing JOIN elimination. Contact the
+	// authors for debugging.");
 	// pev = Unifier.applySubstitution(pev, mgu);
 	// newbody = pev.getBody();
 	// newbody.remove(newatomidx);
@@ -423,7 +421,8 @@ public class DatalogUnfolder {
 	// // if (mgu == null)
 	// // throw new RuntimeException(
 	// //
-	// "Unexcpected case found while performing JOIN elimination. Contact the authors for debugging.");
+	// "Unexcpected case found while performing JOIN elimination. Contact the
+	// authors for debugging.");
 	// // pev = Unifier.applySubstitution(pev, mgu);
 	// // newbody = pev.getBody();
 	// // newbody.remove(newatomidx);
@@ -495,8 +494,9 @@ public class DatalogUnfolder {
 	// }
 
 	/***
-	 * This method will attempt to unfold the TOP LEVEL nested JOINs. Adding
-	 * them as conjuncts to the body of the UCQ </ul>
+	 * This method will attempt to unfold the TOP LEVEL nested JOINs. Adding them as
+	 * conjuncts to the body of the UCQ
+	 * </ul>
 	 * 
 	 * <p>
 	 * 
@@ -505,29 +505,24 @@ public class DatalogUnfolder {
 	 * @param count
 	 * @return
 	 */
-/*	
-	private void unfoldNestedJoin(CQIE currentQuery) {
-		for (int atomIdx = 0; atomIdx < currentQuery.getBody().size(); atomIdx++) {
-			Function function = currentQuery.getBody().get(atomIdx);
-			
-			// Unfolding the Join atom
+	/*
+	 * private void unfoldNestedJoin(CQIE currentQuery) { for (int atomIdx = 0;
+	 * atomIdx < currentQuery.getBody().size(); atomIdx++) { Function function =
+	 * currentQuery.getBody().get(atomIdx);
+	 * 
+	 * // Unfolding the Join atom
+	 * 
+	 * Predicate innerPredicate = function.getFunctionSymbol(); if
+	 * (!(innerPredicate.getName().toString().equals(OBDAVocabulary.SPARQL_JOIN_URI)
+	 * )) continue;
+	 * 
+	 * // Found a join, removing the Join term and assimilating its terms
+	 * List<Function> body = currentQuery.getBody(); body.remove(atomIdx); for (int
+	 * subtermidx = function.getTerms().size() - 1; subtermidx >= 0; subtermidx--) {
+	 * Term atom = function.getTerm(subtermidx); body.add(atomIdx, (Function)atom);
+	 * } atomIdx += -1; } }
+	 */
 
-			Predicate innerPredicate = function.getFunctionSymbol();
-			if (!(innerPredicate.getName().toString().equals(OBDAVocabulary.SPARQL_JOIN_URI)))
-				continue;
-
-			// Found a join, removing the Join term and assimilating its terms 
-			List<Function> body = currentQuery.getBody();
-			body.remove(atomIdx);
-			for (int subtermidx = function.getTerms().size() - 1; subtermidx >= 0; subtermidx--) {
-				Term atom = function.getTerm(subtermidx);
-				body.add(atomIdx, (Function)atom);
-			}
-			atomIdx += -1;
-		}
-	}
-*/
-	
 	// /***
 	// * Unfolds the inner terms of a literal. If the literal is not a function,
 	// * then returns the same literal. If the literal is a function, it will
@@ -720,7 +715,8 @@ public class DatalogUnfolder {
 	//
 	// if (mgu == null)
 	// throw new RuntimeException(
-	// "Unexcpected case found while performing JOIN elimination. Contact the authors for debugging.");
+	// "Unexcpected case found while performing JOIN elimination. Contact the
+	// authors for debugging.");
 	// pev = Unifier.applySubstitution(pev, mgu);
 	// newbody = pev.getBody();
 	// newbody.remove(newatomidx);
@@ -788,7 +784,8 @@ public class DatalogUnfolder {
 	// // if (mgu == null)
 	// // throw new RuntimeException(
 	// //
-	// "Unexcpected case found while performing JOIN elimination. Contact the authors for debugging.");
+	// "Unexcpected case found while performing JOIN elimination. Contact the
+	// authors for debugging.");
 	// // pev = Unifier.applySubstitution(pev, mgu);
 	// // newbody = pev.getBody();
 	// // newbody.remove(newatomidx);
@@ -918,49 +915,46 @@ public class DatalogUnfolder {
 	//
 	// }
 
-
 	private void getResultForPantelis(List<CQIE> workingSet) {
-		for(int ws=0; ws<workingSet.size(); ws++){
-			CQIE q=workingSet.get(ws);
-			for(int f=0;f<q.getBody().size();f++){
-				Function atom=q.getBody().get(f);
+		for (int ws = 0; ws < workingSet.size(); ws++) {
+			CQIE q = workingSet.get(ws);
+			for (int f = 0; f < q.getBody().size(); f++) {
+				Function atom = q.getBody().get(f);
 				if (atom.isDataFunction()) {
 					Predicate pred = atom.getFunctionSymbol();
 					List<CQIE> rulesDefiningTheAtom = ruleIndex.get(pred);
 					if (rulesDefiningTheAtom == null) {
 						System.out.println("what3???");
-						System.out.println("Property "+pred+ " not found!");
+						System.out.println("Property " + pred + " not found!");
 						workingSet.remove(ws);
 						ws--;
 						break;
-					}
-					else{
-						if(rulesDefiningTheAtom.size()==1){
-							CQIE rule=rulesDefiningTheAtom.get(0).clone();
-							for(int i=0;i<atom.getTerms().size();i++){
-								Term t=atom.getTerm(i);
-								Term toReplace=rule.getHead().getTerm(i);
-								if(toReplace instanceof Function){
-									Function func=(Function)toReplace;
-									if(func.getFunctionSymbol().getName().equals("URI")){
-										toReplace=func.getTerm(0);
-									}
-									else{
+					} else {
+						if (rulesDefiningTheAtom.size() == 1) {
+							CQIE rule = rulesDefiningTheAtom.get(0).clone();
+							for (int i = 0; i < atom.getTerms().size(); i++) {
+								Term t = atom.getTerm(i);
+								Term toReplace = rule.getHead().getTerm(i);
+								if (toReplace instanceof Function) {
+									Function func = (Function) toReplace;
+									if (func.getFunctionSymbol().getName().equals("URI")) {
+										toReplace = func.getTerm(0);
+									} else {
 										System.out.println("what4???");
 									}
 								}
 								rule.getHead().setTerm(i, t);
-								for(int j=0;j<rule.getBody().size();j++){
-									Function b=rule.getBody().get(j);
-									if(b.getFunctionSymbol().getName().equals("IS_NOT_NULL")){
-										//remove not null conditions as they are guaranteed from physical design
+								for (int j = 0; j < rule.getBody().size(); j++) {
+									Function b = rule.getBody().get(j);
+									if (b.getFunctionSymbol().getName().equals("IS_NOT_NULL")) {
+										// remove not null conditions as they are guaranteed from physical design
 										rule.getBody().remove(j);
 										j--;
 										continue;
 									}
-									for(int k=0;k<b.getArity();k++){
-										Term bTerm=b.getTerm(k);
-										if(bTerm.equals(toReplace)){
+									for (int k = 0; k < b.getArity(); k++) {
+										Term bTerm = b.getTerm(k);
+										if (bTerm.equals(toReplace)) {
 											b.setTerm(k, t);
 										}
 									}
@@ -968,84 +962,84 @@ public class DatalogUnfolder {
 							}
 							q.getBody().remove(f);
 							f--;
-							for(Function toRepl:rule.getBody()){
-								q.getBody().add(f+1, toRepl);
+							for (Function toRepl : rule.getBody()) {
+								q.getBody().add(f + 1, toRepl);
 								f++;
 							}
-								
-						}
-						else{
-							Set<Function> disjunctions=new HashSet<Function>(rulesDefiningTheAtom.size());
-							for(CQIE nextRule:rulesDefiningTheAtom){
-							CQIE rule=nextRule.clone();
-							Set<Function> conjunctions=new HashSet<Function>(rule.getBody().size());
-							for(int i=0;i<atom.getTerms().size();i++){
-								Term t=atom.getTerm(i);
-								Term toReplace=rule.getHead().getTerm(i);
-								if(toReplace instanceof Function){
-									Function func=(Function)toReplace;
-									if(func.getFunctionSymbol().getName().equals("URI")){
-										toReplace=func.getTerm(0);
+
+						} else {
+							Set<Function> disjunctions = new HashSet<Function>(rulesDefiningTheAtom.size());
+							for (CQIE nextRule : rulesDefiningTheAtom) {
+								CQIE rule = nextRule.clone();
+								Set<Function> conjunctions = new HashSet<Function>(rule.getBody().size());
+								for (int i = 0; i < atom.getTerms().size(); i++) {
+									Term t = atom.getTerm(i);
+									Term toReplace = rule.getHead().getTerm(i);
+									if (toReplace instanceof Function) {
+										Function func = (Function) toReplace;
+										if (func.getFunctionSymbol().getName().equals("URI")) {
+											toReplace = func.getTerm(0);
+										} else {
+											System.out.println("what4???");
+										}
 									}
-									else{
-										System.out.println("what4???");
-									}
-								}
-								rule.getHead().setTerm(i, t);
-								for(int j=0;j<rule.getBody().size();j++){
-									Function b=rule.getBody().get(j);
-									if(b.getFunctionSymbol().getName().equals("IS_NOT_NULL")){
-										//remove not null conditions as they are guaranteed from physical design
-										rule.getBody().remove(j);
-										j--;
-										continue;
-									}
-									for(int k=0;k<b.getArity();k++){
-										Term bTerm=b.getTerm(k);
-										if(bTerm.equals(toReplace)){
-											b.setTerm(k, t);
+									rule.getHead().setTerm(i, t);
+									for (int j = 0; j < rule.getBody().size(); j++) {
+										Function b = rule.getBody().get(j);
+										if (b.getFunctionSymbol().getName().equals("IS_NOT_NULL")) {
+											// remove not null conditions as they are guaranteed from physical design
+											rule.getBody().remove(j);
+											j--;
+											continue;
+										}
+										for (int k = 0; k < b.getArity(); k++) {
+											Term bTerm = b.getTerm(k);
+											if (bTerm.equals(toReplace)) {
+												b.setTerm(k, t);
+											}
 										}
 									}
 								}
+
+								for (Function toRepl : rule.getBody()) {
+									conjunctions.add(toRepl);
+								}
+								Function conj = termFactory
+										.getConjunction(conjunctions.toArray(new Function[conjunctions.size()]));
+								disjunctions.add(conj);
+							}
+							Function disj = termFactory
+									.getDisjunction(disjunctions.toArray(new Function[disjunctions.size()]));
+
+							// add variables as args to disjunction
+							for (Term t : atom.getTerms()) {
+								disj.getTerms().add(t);
 							}
 							
-							
-							for(Function toRepl:rule.getBody()){
-								conjunctions.add(toRepl);
-							}
-							Function conj = termFactory.getConjunction(conjunctions.toArray(new Function[conjunctions.size()]));
-							disjunctions.add(conj);
-						}
-							Function disj = termFactory.getDisjunction(disjunctions.toArray(new Function[disjunctions.size()]));
-							
-							//add variables as args to disjunction
-							for(Term t:atom.getTerms()){
-									disj.getTerms().add(t);
-							}
+							Term functionanme=termFactory.getConstantLiteral(pred.getName());
+							disj.getTerms().add(functionanme);
 							
 							q.getBody().remove(f);
 							q.getBody().add(f, disj);
+						}
 					}
-				}
-				}
-				else if (atom.isAlgebraFunction()) {
+				} else if (atom.isAlgebraFunction()) {
 					System.out.println("what???");
-				} 	
-				else{
+				} else {
 					System.out.println("what2???");
 				}
 			}
 		}
-		
+
 	}
 
 	/***
-	 * This method assumes that the inner term (termidx) of term is a data atom,
-	 * or a nested atom.
+	 * This method assumes that the inner term (termidx) of term is a data atom, or
+	 * a nested atom.
 	 * <p>
 	 * If the term is a data atom, it returns all the new rule resulting from
-	 * resolving that atom with unifiable rules in the unfoldign program. If
-	 * there are no such rules it returns null (the atom is logically empty).
+	 * resolving that atom with unifiable rules in the unfoldign program. If there
+	 * are no such rules it returns null (the atom is logically empty).
 	 * <p>
 	 * If the atom is a Join or LeftJoin (algebra operators) it will recursively
 	 * call unfoldin into each term until one method returns something different
@@ -1054,32 +1048,31 @@ public class DatalogUnfolder {
 	 * If the term is not a data atom, e.g., datatype atom, variable, constant,
 	 * boolean atom., the method returns the original rule, without change.
 	 * 
-	 * otherwise it does nothing (i.e., variables, constants, etc cannot be
-	 * resolved against rule
+	 * otherwise it does nothing (i.e., variables, constants, etc cannot be resolved
+	 * against rule
 	 * 
-
+	 * 
 	 * @return
 	 */
 	private void computePartialEvaluation(List<CQIE> workingList) {
 
 		ListIterator<CQIE> iterator = workingList.listIterator();
-		
+
 		while (iterator.hasNext()) {
-			CQIE rule = iterator.next(); 
+			CQIE rule = iterator.next();
 
 			List<CQIE> result = computePartialEvaluation(rule.getBody(), rule, new Stack<Integer>(), false);
 
 			if (result == null) {
 				// if the result is null the rule is logically empty
 				iterator.remove();
-			} 
-			else if (!result.isEmpty()) {
+			} else if (!result.isEmpty()) {
 				// one more step in the partial evaluation was computed, we need to
 				// remove the old query and add the result instead. Each of the new
 				// queries could still require more steps of evaluation, so we
 				// move to the previous position
 				iterator.remove();
-				for (CQIE newquery : result) 
+				for (CQIE newquery : result)
 					if (!workingList.contains(newquery)) {
 						iterator.add(newquery);
 						iterator.previous();
@@ -1092,12 +1085,12 @@ public class DatalogUnfolder {
 
 	/***
 	 * Goes through each term, and recursively each inner term trying to resolve
-	 * each atom. Returns an empty list if the partial evaluation is completed
-	 * (no atoms can be resolved and each atom is a leaf atom), null if there is
-	 * at least one atom that is not leaf and cant be resolved, or a list with
-	 * one or more queries if there was one atom that could be resolved against
-	 * one or more rules. The list containts the result of the resolution steps
-	 * against those rules.
+	 * each atom. Returns an empty list if the partial evaluation is completed (no
+	 * atoms can be resolved and each atom is a leaf atom), null if there is at
+	 * least one atom that is not leaf and cant be resolved, or a list with one or
+	 * more queries if there was one atom that could be resolved against one or more
+	 * rules. The list containts the result of the resolution steps against those
+	 * rules.
 	 * 
 	 * @param currentTerms
 	 * @param rule
@@ -1119,55 +1112,54 @@ public class DatalogUnfolder {
 				nonBooleanAtomCounter += 1;
 
 				/*
-				 * This is a data atom, it should be unfolded with the usual
-				 * resolution algorithm.
+				 * This is a data atom, it should be unfolded with the usual resolution
+				 * algorithm.
 				 */
 
 				boolean isLeftJoinSecondArgument = nonBooleanAtomCounter == 2 && parentIsLeftJoin;
-				List<CQIE> result = resolveDataAtom(atom, rule, termidx, parentIsLeftJoin,
-						isLeftJoinSecondArgument);
+				List<CQIE> result = resolveDataAtom(atom, rule, termidx, parentIsLeftJoin, isLeftJoinSecondArgument);
 
 				if (result == null)
 					return null;
 
 				if (!result.isEmpty())
 					return result;
-			}			
-			else if (atom.isAlgebraFunction()) {
+			} else if (atom.isAlgebraFunction()) {
 				nonBooleanAtomCounter += 1;
 				/*
-				 * These may contain data atoms that need to be unfolded, we
-				 * need to recursively unfold each term.
+				 * These may contain data atoms that need to be unfolded, we need to recursively
+				 * unfold each term.
 				 */
 				Predicate predicate = atom.getFunctionSymbol();
 				boolean focusAtomIsLeftJoin = predicate == OBDAVocabulary.SPARQL_LEFTJOIN;
-				
+
 				List<Function> innerTerms = new ArrayList<>(3);
 				for (Term t : atom.getTerms())
-					innerTerms.add((Function)t);
-				
+					innerTerms.add((Function) t);
+
 				List<CQIE> result = computePartialEvaluation(innerTerms, rule, termidx, focusAtomIsLeftJoin);
 
 				if (result == null)
 					return null;
 
-				if (!result.isEmpty()) 
+				if (!result.isEmpty())
 					return result;
-			} 			
-			// ROMAN: commented out because this condition can never be satisfied -- see PredicateImpl.isDataPredicate() 				
-			//else {
-			//	if (!focusLiteral.isBooleanFunction() && 
-			//			!focusLiteral.isArithmeticFunction() && 
-			//			!focusLiteral.isDataTypeFunction()) 					
-			//		throw new IllegalArgumentException("Error during unfolding," + 
-			//			"trying to unfold a non-algebra/non-data function. Offending atom: " + focusLiteral);
-			//}
+			}
+			// ROMAN: commented out because this condition can never be satisfied -- see
+			// PredicateImpl.isDataPredicate()
+			// else {
+			// if (!focusLiteral.isBooleanFunction() &&
+			// !focusLiteral.isArithmeticFunction() &&
+			// !focusLiteral.isDataTypeFunction())
+			// throw new IllegalArgumentException("Error during unfolding," +
+			// "trying to unfold a non-algebra/non-data function. Offending atom: " +
+			// focusLiteral);
+			// }
 			termidx.pop();
 		}
 
 		return Collections.emptyList();
 	}
-	
 
 	/***
 	 * Applies a resolution step over a non-boolean/non-algebra atom (i.e. data
@@ -1183,7 +1175,9 @@ public class DatalogUnfolder {
 	 * <li>Create a clone r' of r</li>
 	 * <li>We replace a in r' with the body of s
 	 * <li>
-	 * <li>We apply mgu to r' (see {@link UnifierUtilities#applyUnifier(it.unibz.inf.ontop.model.CQIE, it.unibz.inf.ontop.owlrefplatform.core.basicoperations.Unifier)} )</li>
+	 * <li>We apply mgu to r' (see
+	 * {@link UnifierUtilities#applyUnifier(it.unibz.inf.ontop.model.CQIE, it.unibz.inf.ontop.owlrefplatform.core.basicoperations.Unifier)}
+	 * )</li>
 	 * <li>return r'
 	 * </ul>
 	 * 
@@ -1200,12 +1194,14 @@ public class DatalogUnfolder {
 	 *            atoms position.
 	 * @param atomindx
 	 *            The location of the focustAtom in the currentlist
-	 * @return <ul>
-	 *         <li>null if there is no s whose head unifies with a, we return
-	 *         null. </li><li>An empty list if the atom a is <strong>extensional
-	 *         predicate (those that have no defining rules)</strong> or the
-	 *         second data atom in a left join </li><li>a list with one ore more
-	 *         rules otherwise</li>
+	 * @return
+	 *         <ul>
+	 *         <li>null if there is no s whose head unifies with a, we return null.
+	 *         </li>
+	 *         <li>An empty list if the atom a is <strong>extensional predicate
+	 *         (those that have no defining rules)</strong> or the second data atom
+	 *         in a left join</li>
+	 *         <li>a list with one ore more rules otherwise</li>
 	 *         <ul>
 	 * 
 	 * @see UnifierUtilities
@@ -1225,25 +1221,22 @@ public class DatalogUnfolder {
 			return Collections.emptyList();
 		}
 		/*
-		 * This is a real data atom, it either generates something, or null
-		 * (empty)
+		 * This is a real data atom, it either generates something, or null (empty)
 		 */
 
 		List<CQIE> rulesDefiningTheAtom = ruleIndex.get(pred);
 
 		/*
-		 * If there are none, the atom is logically empty, careful, LEFT JOIN
-		 * alert!
+		 * If there are none, the atom is logically empty, careful, LEFT JOIN alert!
 		 */
 
 		List<CQIE> result = null;
 		if (rulesDefiningTheAtom == null) {
 			if (!isSecondAtomInLeftJoin)
 				return null;
-			else 
+			else
 				result = generateNullBindingsForLeftJoin(focusAtom, rule, termidx);
-		} 
-		else {
+		} else {
 			// Note, in this step result may get new CQIEs inside
 			result = generateResolutionResult(focusAtom, rule, termidx, rulesDefiningTheAtom, isLeftJoin,
 					isSecondAtomInLeftJoin);
@@ -1255,23 +1248,21 @@ public class DatalogUnfolder {
 			// must reutrn an empty result i ndicating its already a partial
 			// evaluation.
 			result = Collections.emptyList();
-		} 
-		else if (result.size() == 0) {
+		} else if (result.size() == 0) {
 			if (!isSecondAtomInLeftJoin)
 				return null;
-			else 
+			else
 				result = generateNullBindingsForLeftJoin(focusAtom, rule, termidx);
 		}
 		return result;
 	}
 
 	/***
-	 * * Normalizes a rule that has multiple data atoms to a rule in which there
-	 * is one single Join atom by creating a nested Join structure. Required to
-	 * resolve atoms in LeftJoins (any, left or right) to avoid ending up with
-	 * left joins with more than 2 table definitions. If the body contains only
-	 * one data atom (or none) it will return <strong>null</strong>. For
-	 * example:
+	 * * Normalizes a rule that has multiple data atoms to a rule in which there is
+	 * one single Join atom by creating a nested Join structure. Required to resolve
+	 * atoms in LeftJoins (any, left or right) to avoid ending up with left joins
+	 * with more than 2 table definitions. If the body contains only one data atom
+	 * (or none) it will return <strong>null</strong>. For example:
 	 * 
 	 * <pre>
 	 * m(x,y) :- R(x,y), R(y,z), R(z,m)
@@ -1281,7 +1272,7 @@ public class DatalogUnfolder {
 	 * m(x,y) :- Join(R(x,y), Join(R(y,z), R(z,m))
 	 * </pre>
 	 * 
-	 * @param rule 
+	 * @param rule
 	 * @return a new query with the nested joins.
 	 */
 	private CQIE foldJOIN(CQIE rule) {
@@ -1296,15 +1287,15 @@ public class DatalogUnfolder {
 		List<Function> otherAtomsList = new LinkedList<>();
 
 		for (Function subAtom : rule.getBody()) {
-			if (subAtom.isDataFunction() || subAtom.isAlgebraFunction()) 
+			if (subAtom.isDataFunction() || subAtom.isAlgebraFunction())
 				dataAtomsList.add(subAtom);
-			else 
+			else
 				otherAtomsList.add(subAtom);
 		}
 
 		// This mapping can be transformed into a normal join with ON
 		// conditions. Doing so.
-		
+
 		Function foldedJoinAtom = null;
 
 		while (dataAtomsList.size() > 1) {
@@ -1314,29 +1305,29 @@ public class DatalogUnfolder {
 			dataAtomsList.add(0, foldedJoinAtom);
 		}
 
-		if (foldedJoinAtom == null) 
+		if (foldedJoinAtom == null)
 			return rule;
-		
+
 		otherAtomsList.add(0, foldedJoinAtom);
-		
+
 		CQIE newrule = termFactory.getCQIE(rule.getHead(), otherAtomsList);
 		return newrule;
 	}
-	
+
 	/***
 	 * Helper method for resolveDataAtom. Do not use anywhere else. This method
-	 * returns a list with all the succesfull resolutions againts focusAtom. It
-	 * will return a list with 0 ore more elements that result from successfull
+	 * returns a list with all the succesfull resolutions againts focusAtom. It will
+	 * return a list with 0 ore more elements that result from successfull
 	 * resolution steps, or null if there are more than 1 successfull resoluiton
 	 * steps but focusAtom is the second atom of a left join (that is,
 	 * isSecondAtomOfLeftJoin is true).
 	 * 
 	 * <p>
-	 * Note the meaning of NULL in this method is different than the meaning of
-	 * null and empty list in
-	 * {@link #resolveDataAtom(it.unibz.inf.ontop.model.Function, it.unibz.inf.ontop.model.CQIE, java.util.Stack, int[], boolean, boolean)}  which is
-	 * the caller method. The job of interpreting correctly the output of this
-	 * method is done in the caller.
+	 * Note the meaning of NULL in this method is different than the meaning of null
+	 * and empty list in
+	 * {@link #resolveDataAtom(it.unibz.inf.ontop.model.Function, it.unibz.inf.ontop.model.CQIE, java.util.Stack, int[], boolean, boolean)}
+	 * which is the caller method. The job of interpreting correctly the output of
+	 * this method is done in the caller.
 	 * 
 	 * 
 	 * @param focusAtom
@@ -1346,7 +1337,7 @@ public class DatalogUnfolder {
 	 * @param isSecondAtomOfLeftJoin
 	 * @return
 	 */
-	private List<CQIE> generateResolutionResult(Function focusAtom, CQIE rule, Stack<Integer> termidx, 
+	private List<CQIE> generateResolutionResult(Function focusAtom, CQIE rule, Stack<Integer> termidx,
 			List<CQIE> rulesDefiningTheAtom, boolean isLeftJoin, boolean isSecondAtomOfLeftJoin) {
 
 		List<CQIE> candidateMatches = new LinkedList<>(rulesDefiningTheAtom);
@@ -1360,7 +1351,7 @@ public class DatalogUnfolder {
 
 			Substitution mgu = UnifierUtilities.getMGU(freshRule.getHead(), focusAtom);
 			if (mgu == null) {
-				// Failed attempt 
+				// Failed attempt
 				continue;
 			}
 
@@ -1380,9 +1371,8 @@ public class DatalogUnfolder {
 
 			CQIE partialEvalution = rule.clone();
 			/*
-			 * locating the list that contains the current Function (either body
-			 * or inner term) and replacing the current atom, with the body of
-			 * the matching rule.
+			 * locating the list that contains the current Function (either body or inner
+			 * term) and replacing the current atom, with the body of the matching rule.
 			 */
 
 			List<Function> innerAtoms = getNestedList(termidx, partialEvalution);
@@ -1401,7 +1391,7 @@ public class DatalogUnfolder {
 			 */
 
 			int newatomcount = freshRule.getBody().size();
-			
+
 			joinEliminationPKBased(termidx, newatomcount, partialEvalution);
 
 			/***
@@ -1412,25 +1402,25 @@ public class DatalogUnfolder {
 
 			if (isSecondAtomOfLeftJoin && rulesGeneratedSoFar > 1) {
 				/*
-				 * We had disjunction on the second atom of the lejoin, that is,
-				 * more than two rules that unified. LeftJoin is not
-				 * distributable on the right component, hence, we cannot simply
-				 * generate 2 rules for the seocnd atom.
+				 * We had disjunction on the second atom of the lejoin, that is, more than two
+				 * rules that unified. LeftJoin is not distributable on the right component,
+				 * hence, we cannot simply generate 2 rules for the seocnd atom.
 				 * 
-				 * The rules must be untouched, no partial evaluation is
-				 * possible. We must return the original rule.
+				 * The rules must be untouched, no partial evaluation is possible. We must
+				 * return the original rule.
 				 */
 				return null;
 
 			}
 
 			result.add(partialEvalution);
-		}// end for candidate matches
+		} // end for candidate matches
 
 		return result;
 	}
 
-	private List<CQIE> generateNullBindingsForLeftJoin(Function focusLiteral, CQIE originalRuleWithLeftJoin, Stack<Integer> termidx) {
+	private List<CQIE> generateNullBindingsForLeftJoin(Function focusLiteral, CQIE originalRuleWithLeftJoin,
+			Stack<Integer> termidx) {
 
 		log.debug("Empty evaluation - Data Function {}", focusLiteral);
 
@@ -1458,38 +1448,34 @@ public class DatalogUnfolder {
 				if (argumentAtoms == 1) {
 					TermUtils.addReferencedVariablesTo(variablesArg1, atom);
 					newbody.add(atom);
-				} 
-				else if (argumentAtoms == 2) {
+				} else if (argumentAtoms == 2) {
 					// Here we keep the variables of the second LJ
 					// data argument
 					TermUtils.addReferencedVariablesTo(variablesArg2, atom);
 
 					// and we remove the variables that are in both arguments
 					variablesArg2.removeAll(variablesArg1);
-				} 
-				else 
+				} else
 					newbody.add(atom);
-			} 
-			else 
+			} else
 				newbody.add(atom);
-		}// end for rule body
+		} // end for rule body
 
-		//freshRule.updateBody(newbody);
+		// freshRule.updateBody(newbody);
 		replaceInnerLJ(freshRule, newbody, termidx1);
-		
+
 		Substitution unifier = SubstitutionUtilities.getNullifier(variablesArg2);
 
 		// Now I need to add the null to the variables of the second
 		// LJ data argument
 		SubstitutionUtilities.applySubstitution(freshRule, unifier, false); // in-place unification
-		
+
 		List<CQIE> result = new LinkedList<>();
 		result.add(freshRule);
 		return result;
 	}
-	
-	private static void replaceInnerLJ(CQIE rule, List<Function> replacementTerms,
-			Stack<Integer> termidx) {
+
+	private static void replaceInnerLJ(CQIE rule, List<Function> replacementTerms, Stack<Integer> termidx) {
 		Function parentFunction = null;
 		if (termidx.size() > 1) {
 			/*
@@ -1500,21 +1486,20 @@ public class DatalogUnfolder {
 				int i = termidx.get(y);
 				if (nestedTerm == null)
 					nestedTerm = rule.getBody().get(i);
-				else
-				{
+				else {
 					parentFunction = (Function) nestedTerm;
 					nestedTerm = ((Function) nestedTerm).getTerm(i);
 				}
 			}
-			//Function focusFunction = (Function) nestedTerm;
+			// Function focusFunction = (Function) nestedTerm;
 			if (parentFunction == null) {
-				//its just one Left Join, replace rule body directly
+				// its just one Left Join, replace rule body directly
 				rule.updateBody(replacementTerms);
 				return;
 			}
-			List <Term> tempTerms = parentFunction.getTerms();
+			List<Term> tempTerms = parentFunction.getTerms();
 			tempTerms.remove(0);
-			List <Term> newTerms = new LinkedList<Term>();
+			List<Term> newTerms = new LinkedList<Term>();
 			newTerms.addAll(replacementTerms);
 			newTerms.addAll(tempTerms);
 			parentFunction.updateTerms(newTerms);
@@ -1526,21 +1511,19 @@ public class DatalogUnfolder {
 	/***
 	 * 
 	 * We now take into account Primary Key constraints on the database to avoid
-	 * adding redundant atoms to the query. This could also be done as an
-	 * afterstep, using unification and CQC checks, however, its is much more
-	 * expensive that way. Given a primary Key on A, on columns 1,2, and an atom
-	 * A(x,y,z) added by the resolution engine (always added at the end of the
-	 * CQ body), we will look for another atom A(x,y,z') if the atom exists, we
-	 * can unify both atoms, apply the MGU to the query and remove one of the
-	 * atoms.
+	 * adding redundant atoms to the query. This could also be done as an afterstep,
+	 * using unification and CQC checks, however, its is much more expensive that
+	 * way. Given a primary Key on A, on columns 1,2, and an atom A(x,y,z) added by
+	 * the resolution engine (always added at the end of the CQ body), we will look
+	 * for another atom A(x,y,z') if the atom exists, we can unify both atoms, apply
+	 * the MGU to the query and remove one of the atoms.
 	 * 
 	 * 
 	 * @param termidx
 	 * 
 	 * @param newatomcount
-	 *            The number of new atoms introduced by this resolution step
-	 *            (the body size of the fresh rule used for this resolution
-	 *            step)
+	 *            The number of new atoms introduced by this resolution step (the
+	 *            body size of the fresh rule used for this resolution step)
 	 * 
 	 * @param partialEvalution
 	 *            The CQIE currently being optimized, i.e., the result of the
@@ -1552,13 +1535,12 @@ public class DatalogUnfolder {
 		List<Function> innerAtoms = getNestedList(termidx, partialEvalution);
 
 		Function currentAtom = getTerm(termidx, partialEvalution);
-		
-		
+
 		if (currentAtom == null) {
 			/*
 			 * Case where the resolution atemt didn't add any atoms, the body was null.
 			 */
-			
+
 			return;
 		}
 
@@ -1574,71 +1556,70 @@ public class DatalogUnfolder {
 
 			Collection<List<Integer>> pKeys = primaryKeys.get(newatom.getFunctionSymbol());
 
-            for(List<Integer> pKey : pKeys){
-                // no pkeys for this predicate
-                if (pKey == null || pKey.isEmpty()) 
-                    continue;
-                
-                /*
-                 * the predicate has a primary key, looking for candidates for
-                 * unification, when we find one we can stop, since the application
-                 * of this optimization at each step of the derivation tree
-                 * guarantees there wont be any other redundant atom.
-                 */
+			for (List<Integer> pKey : pKeys) {
+				// no pkeys for this predicate
+				if (pKey == null || pKey.isEmpty())
+					continue;
+
+				/*
+				 * the predicate has a primary key, looking for candidates for unification, when
+				 * we find one we can stop, since the application of this optimization at each
+				 * step of the derivation tree guarantees there wont be any other redundant
+				 * atom.
+				 */
 				Substitution mgu = null;
 
-                Function tempatom = null;
+				Function tempatom = null;
 
-                for (int idx2 = 0; idx2 < termidx.peek(); idx2++) {
-                    tempatom = innerAtoms.get(idx2);
+				for (int idx2 = 0; idx2 < termidx.peek(); idx2++) {
+					tempatom = innerAtoms.get(idx2);
 
-                    // predicates are different, atoms cannot be unified
-                    if (!tempatom.getFunctionSymbol().equals(newatom.getFunctionSymbol())) 
-                        continue;
-                    
+					// predicates are different, atoms cannot be unified
+					if (!tempatom.getFunctionSymbol().equals(newatom.getFunctionSymbol()))
+						continue;
 
-                    boolean redundant = true;
-                    for (Integer termidx2 : pKey) {
-                        if (!newatom.getTerm(termidx2 - 1).equals(tempatom.getTerm(termidx2 - 1))) {
-                            redundant = false;
-                            break;
-                        }
-                    }
-                    
-                    if (redundant) {
-                        // found a candidate replacement atom */
-                        mgu = UnifierUtilities.getMGU(newatom, tempatom);
-                        if (mgu != null) 
-                            break;
-                    }
+					boolean redundant = true;
+					for (Integer termidx2 : pKey) {
+						if (!newatom.getTerm(termidx2 - 1).equals(tempatom.getTerm(termidx2 - 1))) {
+							redundant = false;
+							break;
+						}
+					}
 
-                }
+					if (redundant) {
+						// found a candidate replacement atom */
+						mgu = UnifierUtilities.getMGU(newatom, tempatom);
+						if (mgu != null)
+							break;
+					}
 
-                if (mgu == null)
-                    continue;
+				}
 
-				if (currentAtom.isAlgebraFunction() && (currentAtom.getFunctionSymbol() == OBDAVocabulary.SPARQL_LEFTJOIN)) {
+				if (mgu == null)
 					continue;
-                }
+
+				if (currentAtom.isAlgebraFunction()
+						&& (currentAtom.getFunctionSymbol() == OBDAVocabulary.SPARQL_LEFTJOIN)) {
+					continue;
+				}
 
 				SubstitutionUtilities.applySubstitution(partialEvalution, mgu, false);
 
-                log.debug("The Unique Constraint {}{} is used for eliminating the redundant self join of {} and {}",
-                        newatom.getFunctionSymbol(), pKey, newatom, tempatom);
+				log.debug("The Unique Constraint {}{} is used for eliminating the redundant self join of {} and {}",
+						newatom.getFunctionSymbol(), pKey, newatom, tempatom);
 
-                innerAtoms.remove(newatomidx);
-                newatomidx -= 1;
-                newatomcount -= 1;
-                break;
-            }
+				innerAtoms.remove(newatomidx);
+				newatomidx -= 1;
+				newatomcount -= 1;
+				break;
+			}
 		}
 
 		/*
-		 * As the result of optimizing PKs, it can be that JOINs become invalid,
-		 * i.e., they contian one single data item (no longer a join). In this
-		 * case we need to eliminate the join atom attach the inner atoms to the
-		 * parent of the join (body or another join/leftjoin). This is done with
-		 * the normalizer.
+		 * As the result of optimizing PKs, it can be that JOINs become invalid, i.e.,
+		 * they contian one single data item (no longer a join). In this case we need to
+		 * eliminate the join atom attach the inner atoms to the parent of the join
+		 * (body or another join/leftjoin). This is done with the normalizer.
 		 */
 
 		int dataAtoms = DatalogNormalizer.countDataItems(innerAtoms);
@@ -1657,58 +1638,55 @@ public class DatalogUnfolder {
 	 * @param partialEvalution
 	 */
 	private static void eliminateRedundantISNOTNULL(Stack<Integer> termidx, CQIE partialEvalution) {
-			List<Function> innerAtoms = getNestedList(termidx, partialEvalution);
-			Function currentAtom = getTerm(termidx, partialEvalution);
+		List<Function> innerAtoms = getNestedList(termidx, partialEvalution);
+		Function currentAtom = getTerm(termidx, partialEvalution);
 
-			int newatomsfirstIndex = termidx.peek();
-			if (newatomsfirstIndex <= 0) {
-				return;
-			}
-			for (int newatomidx = 0; newatomidx < innerAtoms.size(); newatomidx++) {
+		int newatomsfirstIndex = termidx.peek();
+		if (newatomsfirstIndex <= 0) {
+			return;
+		}
+		for (int newatomidx = 0; newatomidx < innerAtoms.size(); newatomidx++) {
 
-				Function newatom = innerAtoms.get(newatomidx);
-				if (newatom.getFunctionSymbol() != ExpressionOperation.IS_NOT_NULL)
+			Function newatom = innerAtoms.get(newatomidx);
+			if (newatom.getFunctionSymbol() != ExpressionOperation.IS_NOT_NULL)
+				continue;
+
+			Function replacement = null;
+
+			for (int idx2 = 0; idx2 < termidx.peek(); idx2++) {
+				Function tempatom = innerAtoms.get(idx2);
+				if (!tempatom.equals(newatom))
 					continue;
 
-				Function replacement = null;
+				replacement = tempatom;
+				break;
 
-				for (int idx2 = 0; idx2 < termidx.peek(); idx2++) {
-					Function tempatom = innerAtoms.get(idx2);
-					if (!tempatom.equals(newatom))
-						continue;
-
-					replacement = tempatom;
-					break;
-
-				}
-
-				if (replacement == null)
-					continue;
-
-				innerAtoms.remove(newatomidx);
-				newatomidx -= 1;
 			}
+
+			if (replacement == null)
+				continue;
+
+			innerAtoms.remove(newatomidx);
+			newatomidx -= 1;
+		}
 	}
 
-
 	/***
-	 * Returns the list of terms contained in the nested atom indicated by term
-	 * idx. If termidx is empty, then this is the list of atoms in the body of
-	 * the rule, otherwise the list correspond to the terms of the nested atom
-	 * indicated by termidx viewed as a path of atoms. For example, if termidx =
-	 * <2,4> then this atom returns the list of terms of the 4 atom, of the
-	 * second atom in the body of the rule.
+	 * Returns the list of terms contained in the nested atom indicated by term idx.
+	 * If termidx is empty, then this is the list of atoms in the body of the rule,
+	 * otherwise the list correspond to the terms of the nested atom indicated by
+	 * termidx viewed as a path of atoms. For example, if termidx = <2,4> then this
+	 * atom returns the list of terms of the 4 atom, of the second atom in the body
+	 * of the rule.
 	 * 
 	 * <p>
 	 * Example two. IF the rule is q(x):-A(x), Join(R(x,y), Join(P(s),R(x,y) and
-	 * termidx = <1,2>, then this method returns the the terms of the second
-	 * join atom, ie.,
-	 * <P(s),R(x,y)>
-	 * ,
+	 * termidx = <1,2>, then this method returns the the terms of the second join
+	 * atom, ie., <P(s),R(x,y)> ,
 	 * 
 	 * <p>
-	 * note that this list is the actual list of terms of the atom, so
-	 * manipulating the list will change the atom.
+	 * note that this list is the actual list of terms of the atom, so manipulating
+	 * the list will change the atom.
 	 * 
 	 * 
 	 * @param termidx
@@ -1721,15 +1699,14 @@ public class DatalogUnfolder {
 			// it's a nested term
 			int i0 = termidx.get(0);
 			Function newfocusFunction = rule.getBody().get(i0);
-			
+
 			for (int y = 1; y < termidx.size() - 1; y++) {
 				int i = termidx.get(y);
-				newfocusFunction = (Function)newfocusFunction.getTerm(i);
+				newfocusFunction = (Function) newfocusFunction.getTerm(i);
 			}
 
-			return (List<Function>)(List)newfocusFunction.getTerms();
-		} 
-		else {
+			return (List<Function>) (List) newfocusFunction.getTerms();
+		} else {
 			// it's the body of the query
 			return rule.getBody();
 		}
@@ -1742,15 +1719,95 @@ public class DatalogUnfolder {
 			stack.addAll(termidx.subList(0, termidx.size() - 1));
 			List<Function> innerTerms = getNestedList(stack, rule);
 			atom = innerTerms.get(stack.peek());
-		} 
-		else {
+		} else {
 			List<Function> body = rule.getBody();
 			Integer peek = termidx.peek();
-			if (peek >= body.size()) 
+			if (peek >= body.size())
 				return null;
 			atom = body.get(peek);
 		}
 		return atom;
+	}
+
+	public List<CQIE> getUnionMappings() {
+		List<CQIE> result = new ArrayList<CQIE>();
+		for (Predicate p : ruleIndex.keySet()) {
+			List<CQIE> qs = ruleIndex.get(p);
+			if (qs.size() > 1) {
+				Function atom = (Function) qs.get(0).getHead().clone();
+
+				for (int i = 0; i < atom.getTerms().size(); i++) {
+					//Term t = atom.getTerm(i);
+					Term toReplace = atom.getTerm(i);
+					if (toReplace instanceof Function) {
+						Function func = (Function) toReplace;
+						if (func.getFunctionSymbol().getName().equals("URI")) {
+							toReplace = func.getTerm(0);
+						} else {
+							System.out.println("what4???");
+						}
+					}
+					atom.setTerm(i, toReplace);
+				}
+
+				CQIE toAdd = qs.get(0).clone();
+				int index=0;
+				for(Term t:atom.getTerms()) {
+					toAdd.getHead().setTerm(index++, t);
+				}
+				Set<Function> disjunctions = new HashSet<Function>(qs.size());
+				for (CQIE nextRule : qs) {
+					CQIE rule = nextRule.clone();
+					Set<Function> conjunctions = new HashSet<Function>(rule.getBody().size());
+					for (int i = 0; i < atom.getTerms().size(); i++) {
+						Term t = atom.getTerm(i);
+						Term toReplace = rule.getHead().getTerm(i);
+						if (toReplace instanceof Function) {
+							Function func = (Function) toReplace;
+							if (func.getFunctionSymbol().getName().equals("URI")) {
+								toReplace = func.getTerm(0);
+							} else {
+								System.out.println("what4???");
+							}
+						}
+						rule.getHead().setTerm(i, t);
+						for (int j = 0; j < rule.getBody().size(); j++) {
+							Function b = rule.getBody().get(j);
+							if (b.getFunctionSymbol().getName().equals("IS_NOT_NULL")) {
+								// remove not null conditions as they are guaranteed from physical design
+								rule.getBody().remove(j);
+								j--;
+								continue;
+							}
+							for (int k = 0; k < b.getArity(); k++) {
+								Term bTerm = b.getTerm(k);
+								if (bTerm.equals(t)) {
+									b.setTerm(k, toReplace);
+								} else if (bTerm.equals(toReplace)) {
+									b.setTerm(k, t);
+								}
+							}
+						}
+					}
+
+					for (Function toRepl : rule.getBody()) {
+						conjunctions.add(toRepl);
+					}
+					Function conj = termFactory.getConjunction(conjunctions.toArray(new Function[conjunctions.size()]));
+					disjunctions.add(conj);
+				}
+				Function disj = termFactory.getDisjunction(disjunctions.toArray(new Function[disjunctions.size()]));
+
+				// add variables as args to disjunction
+				for (Term t : atom.getTerms()) {
+					disj.getTerms().add(t);
+				}
+				toAdd.getBody().clear();
+				toAdd.getBody().add(disj);
+				result.add(toAdd);
+			}
+		}
+		return result;
 	}
 
 }
